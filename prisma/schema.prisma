@@ -42,4 +42,5 @@ enum UserStatus {
   PENDING
   ACTIVE
   SUSPEND
+  REJECTED
 }

@@ -44,8 +44,21 @@ const changeRole: RequestHandler = catchAsync(async (req, res) => {
   });
 });
 
+const changeStatus: RequestHandler = catchAsync(async (req, res) => {
+  const { id } = req.params;
+  const result = await UserService.changeStatus(id as string, req.body);
+
+  sendResponse(res, {
+    statusCode: 200,
+    success: true,
+    message: `User status updated to ${req.body.status} successfully.`,
+    data: result
+  });
+});
+
 export const UserController = {
   getMe,
   getAllUsers,
-  changeRole
+  changeRole,
+  changeStatus
 };

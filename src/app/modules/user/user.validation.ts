@@ -10,6 +10,17 @@ const changeRole = z.object({
     .strict()
 });
 
+const changeStatus = z.object({
+  body: z
+    .object({
+      status: z.enum(['PENDING', 'ACTIVE', 'SUSPEND', 'REJECTED'], {
+        message: 'Invalid status. Must be PENDING, ACTIVE, SUSPEND, or REJECTED.'
+      })
+    })
+    .strict()
+});
+
 export const UserValidation = {
-  changeRole
+  changeRole,
+  changeStatus
 };

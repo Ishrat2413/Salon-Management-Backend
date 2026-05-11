@@ -15,5 +15,11 @@ router.patch(
   validateRequest(UserValidation.changeRole),
   UserController.changeRole
 );
+router.patch(
+  '/:id/status',
+  auth('ADMIN'),
+  validateRequest(UserValidation.changeStatus),
+  UserController.changeStatus
+);
 
 export const UserRoutes = router;

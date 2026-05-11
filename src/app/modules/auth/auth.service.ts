@@ -80,6 +80,18 @@ const login = async (payload: IUserLoginPayload): Promise<ILoginResponse> => {
     throw new AppError(401, 'Invalid email or password.');
   }
 
+  if (user.status !== 'ACTIVE') {
+    if (user.status === 'PENDING') {
+      throw new AppError(403, 'Your account is pending approval.');
+    } else if (user.status === 'REJECTED') {
+      throw new AppError(403, 'Your account has been rejected.');
+    } else if (user.status === 'SUSPEND') {
+      throw new AppError(403, 'Your account is suspended.');
+    } else {
+      throw new AppError(403, 'Your account is not active.');
+    }
+  }
+
   const isPasswordMatched = await bcrypt.compare(payload.password, user.password);
 
   if (!isPasswordMatched) {

@@ -66,8 +66,34 @@ const changeRole = async (id: string, payload: IChangeRolePayload) => {
   return updatedUser;
 };
 
+const changeStatus = async (id: string, payload: { status: 'PENDING' | 'ACTIVE' | 'SUSPEND' | 'REJECTED' }) => {
+  const user = await prisma.user.findUnique({
+    where: { id }
+  });
+
+  if (!user) {
+    throw new AppError(404, 'User not found.');
+  }
+
+  const updatedUser = await prisma.user.update({
+    where: { id },
+    data: { status: payload.status },
+    select: {
+      id: true,
+      fullName: true,
+      email: true,
+      role: true,
+      status: true,
+      salonId: true
+    }
+  });
+
+  return updatedUser;
+};
+
 export const UserService = {
   getMe,
   getAllUsers,
-  changeRole
+  changeRole,
+  changeStatus
 };

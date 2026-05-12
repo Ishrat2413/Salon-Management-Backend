@@ -169,13 +169,39 @@ const forgotPassword = async (payload: IForgotPasswordPayload): Promise<void> =>
 
   // Send the email with the unhashed 6-digit code
   const emailHtml = `
-    <h1>Password Reset Request</h1>
-    <p>Your password reset code is: <strong>${resetCode}</strong></p>
-    <p>This code will expire in 15 minutes.</p>
-    <p>If you did not request this, please ignore this email.</p>
+    <div style="font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; max-width: 600px; margin: 0 auto; background-color: #ffffff; border: 1px solid #e0e0e0; border-radius: 12px; overflow: hidden; box-shadow: 0 4px 15px rgba(0,0,0,0.05);">
+      <div style="background-color: #1a1a1a; padding: 30px 20px; text-align: center; border-bottom: 3px solid #d4af37;">
+        <h1 style="color: #ffffff; margin: 0; font-size: 28px; font-weight: 700; letter-spacing: 2px; text-transform: uppercase;">STYLE CITY</h1>
+        <p style="color: #d4af37; margin: 5px 0 0 0; font-size: 14px; letter-spacing: 1px;">PREMIUM SALON SERVICES</p>
+      </div>
+      
+      <div style="padding: 40px 30px; text-align: center;">
+        <h2 style="color: #333333; margin-top: 0; margin-bottom: 20px; font-size: 22px; font-weight: 600;">Password Reset Request</h2>
+        <p style="color: #666666; font-size: 16px; line-height: 1.6; margin-bottom: 30px;">
+          We received a request to reset the password for your Style City account. Please use the verification code below to complete the process.
+        </p>
+        
+        <div style="background: linear-gradient(145deg, #fdfbf7 0%, #f4f0e6 100%); border: 1px solid #e8e2d2; padding: 25px; border-radius: 10px; margin-bottom: 30px; display: inline-block;">
+          <p style="color: #8c7322; font-size: 13px; text-transform: uppercase; font-weight: bold; margin: 0 0 10px 0; letter-spacing: 1px;">Your Verification Code</p>
+          <span style="display: block; font-size: 38px; font-weight: 700; letter-spacing: 8px; color: #1a1a1a; margin-left: 8px;">${resetCode}</span>
+        </div>
+        
+        <p style="color: #888888; font-size: 14px; margin-bottom: 10px;">
+          <strong style="color: #e74c3c;">Note:</strong> This code will expire in exactly 15 minutes.
+        </p>
+      </div>
+      
+      <div style="background-color: #f9f9f9; padding: 20px 30px; text-align: center; border-top: 1px solid #eeeeee;">
+        <p style="color: #999999; font-size: 12px; margin: 0; line-height: 1.5;">
+          If you did not request a password reset, please safely ignore this email or contact our support team if you have concerns.
+          <br><br>
+          &copy; ${new Date().getFullYear()} Style City. All rights reserved.
+        </p>
+      </div>
+    </div>
   `;
 
-  await sendEmail(user.email, 'Password Reset Code', emailHtml);
+  await sendEmail(user.email, 'Style City - Password Reset Code', emailHtml);
 };
 
 const verifyResetCode = async (

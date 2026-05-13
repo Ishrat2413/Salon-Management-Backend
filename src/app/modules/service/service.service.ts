@@ -60,10 +60,17 @@ const updateService = async (id: string, payload: IServiceUpdatePayload) => {
 };
 
 const deleteService = async (id: string) => {
-  const service = await prisma.service.findUnique({ where: { id } });
+  const service = await prisma.service.findUnique({ 
+    where: { id },
+    include: { _count: { select: { salonEntries: true } } }
+  });
 
   if (!service) {
     throw new AppError(404, 'Service not found.');
+  }
+
+  if (service._count.salonEntries > 0) {
+    throw new AppError(400, 'Cannot delete this service because it is currently being used in one or more salon entries.');
   }
 
   const result = await prisma.service.delete({

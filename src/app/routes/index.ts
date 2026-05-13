@@ -2,6 +2,7 @@ import { Router } from 'express';
 
 import { AuthRoutes } from '../modules/auth/auth.routes';
 import { SalonRoutes } from '../modules/salon/salon.routes';
+import { SalonEntryRoutes } from '../modules/salon-entry/salon-entry.routes';
 import { ServiceRoutes } from '../modules/service/service.routes';
 import { UserRoutes } from '../modules/user/user.routes';
 
@@ -23,6 +24,10 @@ const moduleRoutes = [
   {
     path: '/services',
     route: ServiceRoutes
+  },
+  {
+    path: '/salon-entries',
+    route: SalonEntryRoutes
   }
 ];
 

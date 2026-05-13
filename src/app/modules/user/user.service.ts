@@ -1,7 +1,7 @@
 import { Prisma } from '@prisma/client';
 import AppError from '../../errors/AppError';
 import prisma from '../../utils/prisma';
-import type { IChangeRolePayload, IUserFilterParams } from './user.interface';
+import type { IChangeRolePayload, IChangeStatusPayload, IUserFilterParams } from './user.interface';
 
 const getMe = async (userId: string) => {
   const user = await prisma.user.findUnique({
@@ -29,9 +29,7 @@ const getAllUsers = async (filters: IUserFilterParams, page: number, limit: numb
   const skip = (page - 1) * limit;
 
   // We explicitly only want to return Employees and Managers, never Admins.
-  const andConditions: Prisma.UserWhereInput[] = [
-    { role: { in: ['EMPLOYEE', 'MANAGER'] } }
-  ];
+  const andConditions: Prisma.UserWhereInput[] = [{ role: { in: ['EMPLOYEE', 'MANAGER'] } }];
 
   if (filters.searchTerm) {
     andConditions.push({
@@ -57,7 +55,14 @@ const getAllUsers = async (filters: IUserFilterParams, page: number, limit: numb
       id: true,
       fullName: true,
       email: true,
-      role: true
+      role: true,
+      status: true,
+      salonId: true,
+      salon: {
+        select: {
+          name: true
+        }
+      }
     }
   });
 
@@ -65,13 +70,23 @@ const getAllUsers = async (filters: IUserFilterParams, page: number, limit: numb
     where: whereConditions
   });
 
+  const formattedUsers = users.map((user) => ({
+    id: user.id,
+    fullName: user.fullName,
+    email: user.email,
+    role: user.role,
+    status: user.status,
+    salonId: user.salonId,
+    salonName: user.salon?.name || 'N/A'
+  }));
+
   return {
     meta: {
       page,
       limit,
       total
     },
-    data: users
+    data: formattedUsers
   };
 };
 
@@ -100,13 +115,29 @@ const changeRole = async (id: string, payload: IChangeRolePayload) => {
   return updatedUser;
 };
 
-const changeStatus = async (id: string, payload: { status: 'PENDING' | 'ACTIVE' | 'SUSPEND' | 'REJECTED' }) => {
+const changeStatus = async (id: string, payload: IChangeStatusPayload) => {
   const user = await prisma.user.findUnique({
     where: { id }
   });
 
   if (!user) {
     throw new AppError(404, 'User not found.');
+  }
+
+  if (user.status === 'PENDING' && payload.status === 'REJECTED') {
+    const deletedUser = await prisma.user.delete({
+      where: { id },
+      select: {
+        id: true,
+        fullName: true,
+        email: true,
+        role: true,
+        status: true,
+        salonId: true
+      }
+    });
+
+    return deletedUser;
   }
 
   const updatedUser = await prisma.user.update({

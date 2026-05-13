@@ -53,11 +53,14 @@ const changeRole: RequestHandler = catchAsync(async (req, res) => {
 const changeStatus: RequestHandler = catchAsync(async (req, res) => {
   const { id } = req.params;
   const result = await UserService.changeStatus(id as string, req.body);
+  const isRejectedRemoval = req.body.status === 'REJECTED' && result.status === 'PENDING';
 
   sendResponse(res, {
     statusCode: 200,
     success: true,
-    message: `User status updated to ${req.body.status} successfully.`,
+    message: isRejectedRemoval
+      ? 'User rejected and removed successfully.'
+      : `User status updated to ${req.body.status} successfully.`,
     data: result
   });
 });

@@ -87,7 +87,7 @@ const updateSalon = async (id: string, payload: ISalonUpdatePayload) => {
 const deleteSalon = async (id: string) => {
   const salon = await prisma.salon.findUnique({ 
     where: { id },
-    include: { _count: { select: { users: true } } }
+    include: { _count: { select: { users: true, salonEntries: true } } }
   });
 
   if (!salon) {
@@ -95,7 +95,11 @@ const deleteSalon = async (id: string) => {
   }
 
   if (salon._count.users > 0) {
-    throw new AppError(400, 'Cannot delete salon as it has employees or managers assigned to it.');
+    throw new AppError(400, 'Cannot delete this salon because it has employees or managers assigned to it.');
+  }
+
+  if (salon._count.salonEntries > 0) {
+    throw new AppError(400, 'Cannot delete this salon because it is currently being used in one or more salon entries.');
   }
 
   const result = await prisma.salon.delete({

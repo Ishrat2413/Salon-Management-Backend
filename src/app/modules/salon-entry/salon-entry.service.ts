@@ -59,16 +59,20 @@ const getAllSalonEntries = async (
 
   // 2. Filter Conditions
   if (filters.startDate && filters.endDate) {
+    const end = new Date(filters.endDate);
+    end.setUTCHours(23, 59, 59, 999);
     andConditions.push({
       createdAt: {
         gte: new Date(filters.startDate),
-        lte: new Date(filters.endDate)
+        lte: end
       }
     });
   } else if (filters.startDate) {
     andConditions.push({ createdAt: { gte: new Date(filters.startDate) } });
   } else if (filters.endDate) {
-    andConditions.push({ createdAt: { lte: new Date(filters.endDate) } });
+    const end = new Date(filters.endDate);
+    end.setUTCHours(23, 59, 59, 999);
+    andConditions.push({ createdAt: { lte: end } });
   }
 
   if (filters.employeeId) {

@@ -28,7 +28,10 @@ const getMe = async (userId: string) => {
 const getAllUsers = async (filters: IUserFilterParams, page: number, limit: number) => {
   const skip = (page - 1) * limit;
 
-  const andConditions: Prisma.UserWhereInput[] = [];
+  // We explicitly only want to return Employees and Managers, never Admins.
+  const andConditions: Prisma.UserWhereInput[] = [
+    { role: { in: ['EMPLOYEE', 'MANAGER'] } }
+  ];
 
   if (filters.searchTerm) {
     andConditions.push({
@@ -43,8 +46,7 @@ const getAllUsers = async (filters: IUserFilterParams, page: number, limit: numb
     andConditions.push({ salonId: filters.salonId });
   }
 
-  const whereConditions: Prisma.UserWhereInput =
-    andConditions.length > 0 ? { AND: andConditions } : {};
+  const whereConditions: Prisma.UserWhereInput = { AND: andConditions };
 
   const users = await prisma.user.findMany({
     where: whereConditions,

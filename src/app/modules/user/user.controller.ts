@@ -22,13 +22,19 @@ const getMe: RequestHandler = catchAsync(async (req, res) => {
 });
 
 const getAllUsers: RequestHandler = catchAsync(async (req, res) => {
-  const result = await UserService.getAllUsers();
+  const page = Number(req.query.page) || 1;
+  const limit = Number(req.query.limit) || 10;
+  const searchTerm = req.query.searchTerm as string | undefined;
+  const salonId = req.query.salonId as string | undefined;
+
+  const result = await UserService.getAllUsers({ searchTerm, salonId }, page, limit);
 
   sendResponse(res, {
     statusCode: 200,
     success: true,
     message: 'Users retrieved successfully.',
-    data: result
+    meta: result.meta,
+    data: result.data
   });
 });
 

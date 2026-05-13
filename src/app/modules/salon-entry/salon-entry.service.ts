@@ -46,12 +46,24 @@ const getAllSalonEntries = async (userId: string, role: string, page: number, li
 
   const formattedData = result.map(entry => {
     let loggedInUserTips = 0;
+    let loggedInUserTotalPrice = 0;
+
     if (entry.employeeId === userId) {
       loggedInUserTips = entry.tips || 0;
+      loggedInUserTotalPrice = entry.totalPrice;
+
+      if (entry.isSplit && entry.splits && entry.splits.length > 0) {
+        const splitTipsSum = entry.splits.reduce((sum, split) => sum + (split.tips || 0), 0);
+        const splitPriceSum = entry.splits.reduce((sum, split) => sum + split.totalPrice, 0);
+        
+        loggedInUserTips -= splitTipsSum;
+        loggedInUserTotalPrice -= splitPriceSum;
+      }
     } else if (entry.isSplit && entry.splits) {
       const userSplit = entry.splits.find(s => s.employeeId === userId);
       if (userSplit) {
         loggedInUserTips = userSplit.tips || 0;
+        loggedInUserTotalPrice = userSplit.totalPrice;
       }
     }
 
@@ -63,6 +75,8 @@ const getAllSalonEntries = async (userId: string, role: string, page: number, li
       salonName: entry.salon.name,
       createdAt: entry.createdAt,
       totalPrice: entry.totalPrice,
+      tips: entry.tips || 0,
+      loggedInUserTotalPrice,
       loggedInUserTips,
       isSplit: entry.isSplit
     };

@@ -15,3 +15,12 @@ export interface ISalonEntryCreatePayload {
   isSplit?: boolean;
   splits?: ISplitEntryPayload[];
 }
+
+export interface ISalonEntryFilterParams {
+  searchTerm?: string;
+  startDate?: string;
+  endDate?: string;
+  employeeId?: string;
+  salonId?: string;
+}
+

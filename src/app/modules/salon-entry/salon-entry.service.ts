@@ -190,6 +190,7 @@ const getAllSalonEntries = async (
 
     return {
       id: entry.id,
+      clientName: entry.clientName,
       serviceId: entry.serviceId,
       serviceName: entry.service.name,
       salonId: entry.salonId,

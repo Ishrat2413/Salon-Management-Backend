@@ -51,6 +51,7 @@ model SalonEntry {
   service    Service      @relation(fields: [serviceId], references: [id])
   employeeId String
   employee   User         @relation("MainEmployee", fields: [employeeId], references: [id])
+  clientName String?
   totalPrice Int
   tips       Int?         @default(0)
   addHair    Int?         @default(0)

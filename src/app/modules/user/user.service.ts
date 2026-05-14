@@ -156,9 +156,38 @@ const changeStatus = async (id: string, payload: IChangeStatusPayload) => {
   return updatedUser;
 };
 
+const deleteUser = async (id: string) => {
+  const user = await prisma.user.findUnique({
+    where: { id },
+    include: {
+      _count: {
+        select: {
+          mainEntries: true,
+          splitEntries: true
+        }
+      }
+    }
+  });
+
+  if (!user) {
+    throw new AppError(404, 'User not found.');
+  }
+
+  if (user._count.mainEntries > 0 || user._count.splitEntries > 0) {
+    throw new AppError(400, 'Cannot delete this user because they are currently associated with one or more salon entries.');
+  }
+
+  const result = await prisma.user.delete({
+    where: { id }
+  });
+
+  return result;
+};
+
 export const UserService = {
   getMe,
   getAllUsers,
   changeRole,
-  changeStatus
+  changeStatus,
+  deleteUser
 };

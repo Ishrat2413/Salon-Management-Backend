@@ -21,5 +21,10 @@ router.patch(
   validateRequest(UserValidation.changeStatus),
   UserController.changeStatus
 );
+router.delete(
+  '/:id',
+  auth('ADMIN'),
+  UserController.deleteUser
+);
 
 export const UserRoutes = router;

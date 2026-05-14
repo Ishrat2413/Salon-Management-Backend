@@ -19,4 +19,11 @@ router.get(
   SalonEntryController.getAllSalonEntries
 );
 
+router.patch(
+  '/:id/status',
+  auth('MANAGER', 'ADMIN'),
+  validateRequest(SalonEntryValidation.changeStatus),
+  SalonEntryController.changeStatus
+);
+
 export const SalonEntryRoutes = router;

@@ -48,7 +48,20 @@ const getAllSalonEntries: RequestHandler = catchAsync(async (req, res) => {
   });
 });
 
+const changeStatus: RequestHandler = catchAsync(async (req, res) => {
+  const { id } = req.params;
+  const result = await SalonEntryService.changeStatus(id as string, req.body);
+
+  sendResponse(res, {
+    statusCode: 200,
+    success: true,
+    message: `Salon entry status updated to ${req.body.status} successfully.`,
+    data: result
+  });
+});
+
 export const SalonEntryController = {
   createSalonEntry,
-  getAllSalonEntries
+  getAllSalonEntries,
+  changeStatus
 };

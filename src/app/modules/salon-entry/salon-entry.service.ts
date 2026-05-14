@@ -1,4 +1,5 @@
 import { Prisma } from '@prisma/client';
+import AppError from '../../errors/AppError';
 import prisma from '../../utils/prisma';
 import type { ISalonEntryCreatePayload, ISalonEntryFilterParams } from './salon-entry.interface';
 
@@ -195,6 +196,8 @@ const getAllSalonEntries = async (
       serviceName: entry.service.name,
       salonId: entry.salonId,
       salonName: entry.salon.name,
+      status: entry.status,
+      statusComment: entry.statusComment,
       createdAt: entry.createdAt,
       totalPrice: entry.totalPrice,
       tips: entry.tips || 0,
@@ -218,7 +221,26 @@ const getAllSalonEntries = async (
   };
 };
 
+const changeStatus = async (id: string, payload: { status: 'APPROVED' | 'REJECTED'; statusComment?: string }) => {
+  const entry = await prisma.salonEntry.findUnique({ where: { id } });
+
+  if (!entry) {
+    throw new AppError(404, 'Salon entry not found.');
+  }
+
+  const result = await prisma.salonEntry.update({
+    where: { id },
+    data: {
+      status: payload.status,
+      statusComment: payload.statusComment
+    }
+  });
+
+  return result;
+};
+
 export const SalonEntryService = {
   createSalonEntry,
-  getAllSalonEntries
+  getAllSalonEntries,
+  changeStatus
 };

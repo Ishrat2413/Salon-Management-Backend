@@ -21,6 +21,15 @@ const createSalonEntry = z.object({
   }).strict()
 });
 
+const changeStatus = z.object({
+  body: z.object({
+    status: z.enum(['APPROVED', 'REJECTED'], { message: 'Status must be APPROVED or REJECTED.' }),
+    statusComment: z.string().optional()
+  }).strict()
+});
+
 export const SalonEntryValidation = {
-  createSalonEntry
+  createSalonEntry,
+  changeStatus
 };
+

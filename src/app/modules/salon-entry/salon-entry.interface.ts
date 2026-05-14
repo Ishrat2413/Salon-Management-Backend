@@ -8,6 +8,7 @@ export interface ISalonEntryCreatePayload {
   employeeId: string;
   salonId: string;
   serviceId: string;
+  clientName?: string;
   totalPrice: number;
   tips?: number;
   addHair?: number;
@@ -22,5 +23,10 @@ export interface ISalonEntryFilterParams {
   endDate?: string;
   employeeId?: string;
   salonId?: string;
+}
+
+export interface IChangeSalonEntryStatusPayload {
+  status: 'APPROVED' | 'REJECTED';
+  statusComment?: string;
 }
 

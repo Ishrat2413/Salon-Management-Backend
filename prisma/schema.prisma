@@ -44,23 +44,25 @@ model User {
 }
 
 model SalonEntry {
-  id         String       @id @default(uuid())
-  salonId    String
-  salon      Salon        @relation(fields: [salonId], references: [id])
-  serviceId  String
-  service    Service      @relation(fields: [serviceId], references: [id])
-  employeeId String
-  employee   User         @relation("MainEmployee", fields: [employeeId], references: [id])
-  clientName String?
-  totalPrice Int
-  tips       Int?         @default(0)
-  addHair    Int?         @default(0)
-  notes      String?
-  isSplit    Boolean      @default(false)
-  splits     SplitEntry[]
+  id            String           @id @default(uuid())
+  salonId       String
+  salon         Salon            @relation(fields: [salonId], references: [id])
+  serviceId     String
+  service       Service          @relation(fields: [serviceId], references: [id])
+  employeeId    String
+  employee      User             @relation("MainEmployee", fields: [employeeId], references: [id])
+  clientName    String?
+  totalPrice    Int
+  tips          Int?             @default(0)
+  addHair       Int?             @default(0)
+  notes         String?
+  isSplit       Boolean          @default(false)
+  splits        SplitEntry[]
+  status        SalonEntryStatus @default(PENDING)
+  statusComment String?
 
-  createdAt  DateTime @default(now())
-  updatedAt  DateTime @updatedAt
+  createdAt     DateTime         @default(now())
+  updatedAt     DateTime         @updatedAt
 
   @@map("salon_entries")
 }
@@ -87,5 +89,11 @@ enum UserStatus {
   PENDING
   ACTIVE
   SUSPEND
+  REJECTED
+}
+
+enum SalonEntryStatus {
+  PENDING
+  APPROVED
   REJECTED
 }

@@ -111,7 +111,12 @@ const getAllSalonEntries = async (
     include: {
       service: { select: { id: true, name: true } },
       salon: { select: { id: true, name: true } },
-      splits: true
+      employee: { select: { id: true, fullName: true } },
+      splits: {
+        include: {
+          employee: { select: { id: true, fullName: true } }
+        }
+      }
     }
   });
 
@@ -196,14 +201,24 @@ const getAllSalonEntries = async (
       serviceName: entry.service.name,
       salonId: entry.salonId,
       salonName: entry.salon.name,
+      employeeId: entry.employeeId,
+      employeeName: entry.employee.fullName,
       status: entry.status,
       statusComment: entry.statusComment,
       createdAt: entry.createdAt,
       totalPrice: entry.totalPrice,
       tips: entry.tips || 0,
+      addHair: entry.addHair || 0,
+      notes: entry.notes || null,
       loggedInUserTotalPrice,
       loggedInUserTips,
-      isSplit: entry.isSplit
+      isSplit: entry.isSplit,
+      splits: entry.splits ? entry.splits.map(s => ({
+        employeeId: s.employeeId,
+        employeeName: s.employee.fullName,
+        totalPrice: s.totalPrice,
+        tips: s.tips || 0
+      })) : []
     };
   });
 

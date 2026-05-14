@@ -60,8 +60,29 @@ const changeStatus: RequestHandler = catchAsync(async (req, res) => {
   });
 });
 
+const updateSalonEntry: RequestHandler = catchAsync(async (req, res) => {
+  const { id } = req.params;
+  
+  if (!req.user) {
+    throw new AppError(401, 'Unauthorized');
+  }
+
+  const userId = req.user.userId;
+  const role = req.user.role;
+
+  const result = await SalonEntryService.updateSalonEntry(id as string, req.body, role, userId);
+
+  sendResponse(res, {
+    statusCode: 200,
+    success: true,
+    message: 'Salon entry updated successfully.',
+    data: result
+  });
+});
+
 export const SalonEntryController = {
   createSalonEntry,
   getAllSalonEntries,
-  changeStatus
+  changeStatus,
+  updateSalonEntry
 };

@@ -1,7 +1,7 @@
 import { Prisma } from '@prisma/client';
 import AppError from '../../errors/AppError';
 import prisma from '../../utils/prisma';
-import type { ISalonEntryCreatePayload, ISalonEntryFilterParams } from './salon-entry.interface';
+import type { ISalonEntryCreatePayload, ISalonEntryFilterParams, ISalonEntryUpdatePayload } from './salon-entry.interface';
 
 const createSalonEntry = async (payload: ISalonEntryCreatePayload) => {
   const { splits, ...entryData } = payload;
@@ -239,8 +239,58 @@ const changeStatus = async (id: string, payload: { status: 'APPROVED' | 'REJECTE
   return result;
 };
 
+const updateSalonEntry = async (id: string, payload: ISalonEntryUpdatePayload, userRole: string, userId: string) => {
+  const existingEntry = await prisma.salonEntry.findUnique({
+    where: { id }
+  });
+
+  if (!existingEntry) {
+    throw new AppError(404, 'Salon entry not found.');
+  }
+
+  if (userRole === 'MANAGER') {
+    const managerUser = await prisma.user.findUnique({ where: { id: userId } });
+    if (!managerUser || managerUser.salonId !== existingEntry.salonId) {
+      throw new AppError(403, 'You do not have permission to edit entries for this salon.');
+    }
+  }
+
+  const { splits, ...updateData } = payload;
+
+  const result = await prisma.$transaction(async (tx) => {
+    // If splits are provided, we delete the old ones and create the new ones
+    if (splits !== undefined) {
+      await tx.splitEntry.deleteMany({
+        where: { salonEntryId: id }
+      });
+    }
+
+    const salonEntry = await tx.salonEntry.update({
+      where: { id },
+      data: {
+        ...updateData,
+        splits: splits ? {
+          create: splits.map(split => ({
+            employeeId: split.employeeId,
+            totalPrice: split.totalPrice,
+            tips: split.tips || 0
+          }))
+        } : undefined
+      },
+      include: {
+        splits: true
+      }
+    });
+
+    return salonEntry;
+  });
+
+  return result;
+};
+
 export const SalonEntryService = {
   createSalonEntry,
   getAllSalonEntries,
-  changeStatus
+  changeStatus,
+  updateSalonEntry
 };

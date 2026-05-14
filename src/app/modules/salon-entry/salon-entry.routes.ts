@@ -26,4 +26,11 @@ router.patch(
   SalonEntryController.changeStatus
 );
 
+router.patch(
+  '/:id',
+  auth('MANAGER', 'ADMIN'),
+  validateRequest(SalonEntryValidation.updateSalonEntry),
+  SalonEntryController.updateSalonEntry
+);
+
 export const SalonEntryRoutes = router;

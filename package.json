@@ -1,7 +1,7 @@
 {
   "name": "stylecity-backend",
   "version": "1.0.0",
-  "description": "Production-ready Node.js, Express, TypeScript, PostgreSQL, and Prisma boilerplate.",
+  "description": "Backend for StyleCity application",
   "main": "dist/server.js",
   "scripts": {
     "dev": "tsx watch src/server.ts",

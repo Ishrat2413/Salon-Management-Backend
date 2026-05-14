@@ -43,21 +43,25 @@ const getAllPayroll = async (filters: IPayrollFilterParams) => {
   const matchingEntries = await prisma.salonEntry.findMany({
     where: whereConditions,
     include: {
-      service: true
+      service: true,
+      salon: true
     }
   });
 
   // Group and calculate manually
   const payrollMap: Record<
     string,
-    { serviceId: string; serviceName: string; totalOccurrences: number; totalIncome: number; totalTips: number }
+    { serviceId: string; serviceName: string; salonId: string; salonName: string; totalOccurrences: number; totalIncome: number; totalTips: number }
   > = {};
 
   matchingEntries.forEach(entry => {
-    if (!payrollMap[entry.serviceId]) {
-      payrollMap[entry.serviceId] = {
+    const key = `${entry.serviceId}_${entry.salonId}`;
+    if (!payrollMap[key]) {
+      payrollMap[key] = {
         serviceId: entry.serviceId,
         serviceName: entry.service.name,
+        salonId: entry.salonId,
+        salonName: entry.salon.name,
         totalOccurrences: 0,
         totalIncome: 0,
         totalTips: 0
@@ -66,9 +70,9 @@ const getAllPayroll = async (filters: IPayrollFilterParams) => {
 
     const netPrice = entry.totalPrice - (entry.addHair || 0);
 
-    payrollMap[entry.serviceId].totalOccurrences += 1;
-    payrollMap[entry.serviceId].totalIncome += netPrice;
-    payrollMap[entry.serviceId].totalTips += (entry.tips || 0);
+    payrollMap[key].totalOccurrences += 1;
+    payrollMap[key].totalIncome += netPrice;
+    payrollMap[key].totalTips += (entry.tips || 0);
   });
 
   // Convert map to array and sort by highest income

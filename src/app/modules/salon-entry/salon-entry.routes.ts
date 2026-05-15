@@ -13,11 +13,9 @@ router.post(
   SalonEntryController.createSalonEntry
 );
 
-router.get(
-  '/',
-  auth('EMPLOYEE', 'MANAGER', 'ADMIN'),
-  SalonEntryController.getAllSalonEntries
-);
+router.get('/', auth('EMPLOYEE', 'MANAGER', 'ADMIN'), SalonEntryController.getAllSalonEntries);
+
+router.get('/:id', auth('EMPLOYEE', 'MANAGER', 'ADMIN'), SalonEntryController.getSingleSalonEntry);
 
 router.patch(
   '/:id/status',

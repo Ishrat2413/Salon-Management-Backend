@@ -23,7 +23,7 @@ const getAllSalonEntries: RequestHandler = catchAsync(async (req, res) => {
   const endDate = req.query.endDate as string | undefined;
   const employeeId = req.query.employeeId as string | undefined;
   const salonId = req.query.salonId as string | undefined;
-  
+
   if (!req.user) {
     throw new AppError(401, 'Unauthorized');
   }
@@ -32,10 +32,10 @@ const getAllSalonEntries: RequestHandler = catchAsync(async (req, res) => {
   const role = req.user.role;
 
   const result = await SalonEntryService.getAllSalonEntries(
-    userId, 
-    role, 
-    { searchTerm, startDate, endDate, employeeId, salonId }, 
-    page, 
+    userId,
+    role,
+    { searchTerm, startDate, endDate, employeeId, salonId },
+    page,
     limit
   );
 
@@ -48,8 +48,34 @@ const getAllSalonEntries: RequestHandler = catchAsync(async (req, res) => {
   });
 });
 
+const getSingleSalonEntry: RequestHandler = catchAsync(async (req, res) => {
+  const { id } = req.params;
+
+  if (!req.user) {
+    throw new AppError(401, 'Unauthorized');
+  }
+
+  const result = await SalonEntryService.getSingleSalonEntry(
+    id as string,
+    req.user.userId,
+    req.user.role
+  );
+
+  sendResponse(res, {
+    statusCode: 200,
+    success: true,
+    message: 'Salon entry retrieved successfully.',
+    data: result
+  });
+});
+
 const changeStatus: RequestHandler = catchAsync(async (req, res) => {
   const { id } = req.params;
+
+  if (!req.user) {
+    throw new AppError(401, 'Unauthorized');
+  }
+
   const result = await SalonEntryService.changeStatus(id as string, req.body);
 
   sendResponse(res, {
@@ -62,7 +88,7 @@ const changeStatus: RequestHandler = catchAsync(async (req, res) => {
 
 const updateSalonEntry: RequestHandler = catchAsync(async (req, res) => {
   const { id } = req.params;
-  
+
   if (!req.user) {
     throw new AppError(401, 'Unauthorized');
   }
@@ -83,6 +109,7 @@ const updateSalonEntry: RequestHandler = catchAsync(async (req, res) => {
 export const SalonEntryController = {
   createSalonEntry,
   getAllSalonEntries,
+  getSingleSalonEntry,
   changeStatus,
   updateSalonEntry
 };

@@ -28,8 +28,14 @@ const getMe = async (userId: string) => {
 const getAllUsers = async (filters: IUserFilterParams, page: number, limit: number) => {
   const skip = (page - 1) * limit;
 
-  // We explicitly only want to return Employees and Managers, never Admins.
-  const andConditions: Prisma.UserWhereInput[] = [{ role: { in: ['EMPLOYEE', 'MANAGER'] } }];
+  const andConditions: Prisma.UserWhereInput[] = [];
+
+  if (filters.role) {
+    andConditions.push({ role: filters.role });
+  } else {
+    // Default behavior: We explicitly only want to return Employees and Managers, never Admins.
+    andConditions.push({ role: { in: ['EMPLOYEE', 'MANAGER'] } });
+  }
 
   if (filters.searchTerm) {
     andConditions.push({

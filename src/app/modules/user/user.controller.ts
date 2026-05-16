@@ -26,8 +26,9 @@ const getAllUsers: RequestHandler = catchAsync(async (req, res) => {
   const limit = Number(req.query.limit) || 10;
   const searchTerm = req.query.searchTerm as string | undefined;
   const salonId = req.query.salonId as string | undefined;
+  const role = req.query.role as any;
 
-  const result = await UserService.getAllUsers({ searchTerm, salonId }, page, limit);
+  const result = await UserService.getAllUsers({ searchTerm, salonId, role }, page, limit);
 
   sendResponse(res, {
     statusCode: 200,

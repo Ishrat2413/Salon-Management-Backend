@@ -110,9 +110,15 @@ const getSingleSalon = async (id: string) => {
 };
 
 const updateSalon = async (id: string, payload: ISalonUpdatePayload) => {
-  const salon = await prisma.salon.findUnique({ 
+  const salon = await prisma.salon.findUnique({
     where: { id },
-    include: { manager: true, users: { where: { role: 'MANAGER' } } }
+    select: {
+      managerId: true,
+      users: {
+        where: { role: 'MANAGER' },
+        select: { id: true }
+      }
+    }
   });
 
   if (!salon) {

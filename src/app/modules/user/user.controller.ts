@@ -78,10 +78,27 @@ const deleteUser: RequestHandler = catchAsync(async (req, res) => {
   });
 });
 
+const deleteMe: RequestHandler = catchAsync(async (req, res) => {
+  if (!req.user) {
+    throw new AppError(401, 'You are not authorized.');
+  }
+
+  const userId = req.user.userId;
+  const result = await UserService.deleteUser(userId);
+
+  sendResponse(res, {
+    statusCode: 200,
+    success: true,
+    message: 'Your account has been deleted successfully.',
+    data: result
+  });
+});
+
 export const UserController = {
   getMe,
   getAllUsers,
   changeRole,
   changeStatus,
-  deleteUser
+  deleteUser,
+  deleteMe
 };

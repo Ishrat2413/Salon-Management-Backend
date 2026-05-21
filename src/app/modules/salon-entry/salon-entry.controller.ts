@@ -106,10 +106,24 @@ const updateSalonEntry: RequestHandler = catchAsync(async (req, res) => {
   });
 });
 
+const deleteSalonEntry: RequestHandler = catchAsync(async (req, res) => {
+  const { id } = req.params;
+
+  const result = await SalonEntryService.deleteSalonEntry(id as string);
+
+  sendResponse(res, {
+    statusCode: 200,
+    success: true,
+    message: 'Salon entry deleted successfully.',
+    data: result
+  });
+});
+
 export const SalonEntryController = {
   createSalonEntry,
   getAllSalonEntries,
   getSingleSalonEntry,
   changeStatus,
-  updateSalonEntry
+  updateSalonEntry,
+  deleteSalonEntry
 };

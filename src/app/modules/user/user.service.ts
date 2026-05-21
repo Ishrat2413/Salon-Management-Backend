@@ -187,7 +187,8 @@ const deleteUser = async (id: string) => {
     });
 
     // 3. Delete any main salon entries where this user is the primary employee
-    // (Note: Database-level cascade will automatically remove child split entries 
+    // (Note: Database-level cascade will automatically remove child split entries
+
     // for these salon entries if setup, but we use deleteMany safely here regardless)
     await tx.salonEntry.deleteMany({
       where: { employeeId: id }

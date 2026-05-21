@@ -361,10 +361,33 @@ const updateSalonEntry = async (
   return formatSalonEntry(result as SalonEntryWithRelations, userId);
 };
 
+const deleteSalonEntry = async (id: string) => {
+  const entry = await prisma.salonEntry.findUnique({
+    where: { id }
+  });
+
+  if (!entry) {
+    throw new AppError(404, 'Salon entry not found.');
+  }
+
+  const result = await prisma.$transaction(async (tx) => {
+    await tx.splitEntry.deleteMany({
+      where: { salonEntryId: id }
+    });
+
+    return tx.salonEntry.delete({
+      where: { id }
+    });
+  });
+
+  return result;
+};
+
 export const SalonEntryService = {
   createSalonEntry,
   getAllSalonEntries,
   getSingleSalonEntry,
   changeStatus,
-  updateSalonEntry
+  updateSalonEntry,
+  deleteSalonEntry
 };

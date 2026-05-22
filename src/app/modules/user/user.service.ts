@@ -12,7 +12,20 @@ const getMe = async (userId: string) => {
       email: true,
       role: true,
       status: true,
+      phoneNumber: true,
+      address: true,
       salonId: true,
+      salon: {
+        select: {
+          name: true,
+          address: true
+        }
+      },
+      commissionRate: {
+        select: {
+          rate: true
+        }
+      },
       createdAt: true,
       updatedAt: true
     }
@@ -25,6 +38,36 @@ const getMe = async (userId: string) => {
   return user;
 };
 
+const updateProfile = async (
+  userId: string,
+  payload: { fullName?: string; phoneNumber?: string; address?: string }
+) => {
+  const data = {
+    ...(payload.fullName !== undefined ? { fullName: payload.fullName } : {}),
+    ...(payload.phoneNumber !== undefined ? { phoneNumber: payload.phoneNumber } : {}),
+    ...(payload.address !== undefined ? { address: payload.address } : {})
+  };
+
+  const result = await prisma.user.update({
+    where: { id: userId },
+    data,
+    select: {
+      id: true,
+      fullName: true,
+      email: true,
+      role: true,
+      status: true,
+      phoneNumber: true,
+      address: true,
+      salonId: true,
+      createdAt: true,
+      updatedAt: true
+    }
+  });
+
+  return result;
+};
+
 const getAllUsers = async (filters: IUserFilterParams, page: number, limit: number) => {
   const skip = (page - 1) * limit;
 
@@ -32,7 +75,7 @@ const getAllUsers = async (filters: IUserFilterParams, page: number, limit: numb
 
   if (filters.role) {
     if (typeof filters.role === 'string') {
-      const rolesArray = filters.role.split(',').map(r => r.trim());
+      const rolesArray = filters.role.split(',').map((r) => r.trim());
       andConditions.push({ role: { in: rolesArray as any[] } });
     } else {
       andConditions.push({ role: filters.role as any });
@@ -261,6 +304,7 @@ const deleteUser = async (id: string) => {
 
 export const UserService = {
   getMe,
+  updateProfile,
   getAllUsers,
   changeRole,
   changeStatus,

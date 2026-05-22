@@ -22,6 +22,12 @@ router.patch(
   validateRequest(UserValidation.changeStatus),
   UserController.changeStatus
 );
+router.patch(
+  '/:id/commission-rate',
+  auth('ADMIN'),
+  validateRequest(UserValidation.updateCommissionRate),
+  UserController.updateCommissionRate
+);
 router.delete(
   '/:id',
   auth('ADMIN'),

@@ -73,6 +73,11 @@ const getAllUsers = async (filters: IUserFilterParams, page: number, limit: numb
         select: {
           name: true
         }
+      },
+      commissionRate: {
+        select: {
+          rate: true
+        }
       }
     }
   });
@@ -88,7 +93,8 @@ const getAllUsers = async (filters: IUserFilterParams, page: number, limit: numb
     role: user.role,
     status: user.status,
     salonId: user.salonId,
-    salonName: user.salon?.name || 'N/A'
+    salonName: user.salon?.name || 'N/A',
+    commissionRate: user.commissionRate?.rate ?? null
   }));
 
   return {
@@ -151,20 +157,65 @@ const changeStatus = async (id: string, payload: IChangeStatusPayload) => {
     return deletedUser;
   }
 
-  const updatedUser = await prisma.user.update({
-    where: { id },
-    data: { status: payload.status },
-    select: {
-      id: true,
-      fullName: true,
-      email: true,
-      role: true,
-      status: true,
-      salonId: true
+  const result = await prisma.$transaction(async (tx) => {
+    const updatedUser = await tx.user.update({
+      where: { id },
+      data: { status: payload.status },
+      select: {
+        id: true,
+        fullName: true,
+        email: true,
+        role: true,
+        status: true,
+        salonId: true
+      }
+    });
+
+    if (payload.commissionRate !== undefined) {
+      await tx.commissionRate.upsert({
+        where: { userId: id },
+        update: { rate: payload.commissionRate },
+        create: {
+          userId: id,
+          rate: payload.commissionRate
+        }
+      });
+    }
+
+    return updatedUser;
+  });
+
+  // Fetch updated user with commission rate to return
+  const finalUser = await prisma.user.findUnique({
+    where: { id: result.id },
+    include: { commissionRate: true }
+  });
+
+  return {
+    ...result,
+    commissionRate: finalUser?.commissionRate?.rate ?? null
+  };
+};
+
+const updateCommissionRate = async (id: string, payload: { commissionRate: number }) => {
+  const user = await prisma.user.findUnique({
+    where: { id }
+  });
+
+  if (!user) {
+    throw new AppError(404, 'User not found.');
+  }
+
+  const result = await prisma.commissionRate.upsert({
+    where: { userId: id },
+    update: { rate: payload.commissionRate },
+    create: {
+      userId: id,
+      rate: payload.commissionRate
     }
   });
 
-  return updatedUser;
+  return result;
 };
 
 const deleteUser = async (id: string) => {
@@ -213,5 +264,6 @@ export const UserService = {
   getAllUsers,
   changeRole,
   changeStatus,
+  updateCommissionRate,
   deleteUser
 };

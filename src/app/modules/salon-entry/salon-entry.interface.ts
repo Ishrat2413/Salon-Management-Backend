@@ -10,6 +10,7 @@ export interface ISalonEntryCreatePayload {
   serviceId: string;
   clientName?: string;
   totalPrice: number;
+  actualPrice?: number;
   tips?: number;
   addHair?: number;
   notes?: string;
@@ -23,6 +24,7 @@ export interface ISalonEntryUpdatePayload {
   serviceId?: string;
   clientName?: string;
   totalPrice?: number;
+  actualPrice?: number;
   tips?: number;
   addHair?: number;
   notes?: string;

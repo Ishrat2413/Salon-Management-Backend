@@ -71,6 +71,8 @@ model SalonEntry {
   actualPrice   Int              @default(0)
   tips          Int?             @default(0)
   addHair       Int?             @default(0)
+  commissionRate Int?            @default(0)
+  commissionEarnings Float?      @default(0)
   notes         String?
   isSplit       Boolean          @default(false)
   splits        SplitEntry[]
@@ -91,6 +93,8 @@ model SplitEntry {
   employee     User       @relation("SplitEmployee", fields: [employeeId], references: [id])
   totalPrice   Int
   tips         Int?       @default(0)
+  commissionRate Int?      @default(0)
+  commissionEarnings Float?    @default(0)
 
   @@map("split_entries")
 }

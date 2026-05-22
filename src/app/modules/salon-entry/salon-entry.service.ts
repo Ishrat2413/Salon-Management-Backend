@@ -1,4 +1,4 @@
-import { Prisma } from '@prisma/client';
+import { Prisma } from '.prisma/client';
 import AppError from '../../errors/AppError';
 import prisma from '../../utils/prisma';
 import type {
@@ -10,38 +10,141 @@ import type {
 const salonEntryInclude = {
   service: { select: { id: true, name: true } },
   salon: { select: { id: true, name: true } },
-  employee: { select: { id: true, fullName: true } },
+  employee: {
+    select: {
+      id: true,
+      fullName: true,
+      commissionRate: { select: { rate: true } }
+    }
+  },
   splits: {
     include: {
-      employee: { select: { id: true, fullName: true } }
+      employee: {
+        select: {
+          id: true,
+          fullName: true,
+          commissionRate: { select: { rate: true } }
+        }
+      }
     }
   }
 } as const;
 
-type SalonEntryWithRelations = Prisma.SalonEntryGetPayload<{
-  include: typeof salonEntryInclude;
-}>;
+type CommissionRateRelation = {
+  rate: number | null;
+};
+
+type SalonEntryEmployee = {
+  id: string;
+  fullName: string;
+  commissionRate: CommissionRateRelation | null;
+};
+
+type SalonEntryService = {
+  id: string;
+  name: string;
+};
+
+type SalonEntrySalon = {
+  id: string;
+  name: string;
+};
+
+type SalonEntrySplit = {
+  employeeId: string;
+  totalPrice: number;
+  tips: number | null;
+  commissionRate: number | null;
+  commissionEarnings: number | null;
+  employee: SalonEntryEmployee;
+};
+
+type SalonEntryWithRelations = {
+  id: string;
+  clientName: string | null;
+  serviceId: string;
+  service: SalonEntryService;
+  salonId: string;
+  salon: SalonEntrySalon;
+  employeeId: string;
+  employee: SalonEntryEmployee;
+  status: 'PENDING' | 'APPROVED' | 'REJECTED';
+  statusComment: string | null;
+  createdAt: Date;
+  totalPrice: number;
+  actualPrice: number;
+  tips: number | null;
+  addHair: number | null;
+  notes: string | null;
+  commissionRate: number | null;
+  commissionEarnings: number | null;
+  isSplit: boolean;
+  splits: SalonEntrySplit[];
+};
+
+type SalonEntrySplitCreateData = {
+  employeeId: string;
+  totalPrice: number;
+  tips: number;
+  commissionRate: number;
+  commissionEarnings: number;
+};
+
+type SalonEntrySplitSummary = Pick<
+  SalonEntrySplit,
+  'employeeId' | 'totalPrice' | 'tips' | 'commissionEarnings'
+>;
+
+type SalonEntrySummary = Pick<
+  SalonEntryWithRelations,
+  'employeeId' | 'totalPrice' | 'tips' | 'commissionEarnings' | 'isSplit'
+> & {
+  splits: SalonEntrySplitSummary[];
+};
 
 const formatSalonEntry = (entry: SalonEntryWithRelations, userId: string) => {
   let loggedInUserTips = 0;
   let loggedInUserTotalPrice = 0;
+  let loggedInUserCommissionRate = 0;
+  let commissionEarnings = 0;
 
+  // Use snapshot fields if available, otherwise fallback to dynamic calculation (legacy)
   if (entry.employeeId === userId) {
     loggedInUserTips = entry.tips || 0;
     loggedInUserTotalPrice = entry.totalPrice;
 
+    // Fallback logic
     if (entry.isSplit && entry.splits && entry.splits.length > 0) {
-      const splitTipsSum = entry.splits.reduce((sum, split) => sum + (split.tips || 0), 0);
-      const splitPriceSum = entry.splits.reduce((sum, split) => sum + split.totalPrice, 0);
-
+      const splitTipsSum = entry.splits.reduce(
+        (sum: number, split: SalonEntrySplit) => sum + (split.tips || 0),
+        0
+      );
+      const splitPriceSum = entry.splits.reduce(
+        (sum: number, split: SalonEntrySplit) => sum + split.totalPrice,
+        0
+      );
       loggedInUserTips -= splitTipsSum;
       loggedInUserTotalPrice -= splitPriceSum;
     }
+
+    loggedInUserCommissionRate = entry.commissionRate || entry.employee.commissionRate?.rate || 0;
+    commissionEarnings =
+      entry.commissionEarnings ??
+      (loggedInUserCommissionRate > 0
+        ? (loggedInUserTotalPrice * loggedInUserCommissionRate) / 100
+        : 0);
   } else if (entry.isSplit && entry.splits) {
     const userSplit = entry.splits.find((s) => s.employeeId === userId);
     if (userSplit) {
       loggedInUserTips = userSplit.tips || 0;
       loggedInUserTotalPrice = userSplit.totalPrice;
+      loggedInUserCommissionRate =
+        userSplit.commissionRate || userSplit.employee.commissionRate?.rate || 0;
+      commissionEarnings =
+        userSplit.commissionEarnings ??
+        (loggedInUserCommissionRate > 0
+          ? (loggedInUserTotalPrice * loggedInUserCommissionRate) / 100
+          : 0);
     }
   }
 
@@ -58,18 +161,25 @@ const formatSalonEntry = (entry: SalonEntryWithRelations, userId: string) => {
     statusComment: entry.statusComment,
     createdAt: entry.createdAt,
     totalPrice: entry.totalPrice,
+    actualPrice: entry.actualPrice || 0,
     tips: entry.tips || 0,
     addHair: entry.addHair || 0,
     notes: entry.notes || null,
     loggedInUserTotalPrice,
     loggedInUserTips,
+    loggedInUserCommissionRate,
+    commissionEarnings,
     isSplit: entry.isSplit,
     splits: entry.splits
-      ? entry.splits.map((s) => ({
+      ? entry.splits.map((s: SalonEntrySplit) => ({
           employeeId: s.employeeId,
           employeeName: s.employee.fullName,
           totalPrice: s.totalPrice,
-          tips: s.tips || 0
+          tips: s.tips || 0,
+          commissionRate: s.commissionRate || s.employee.commissionRate?.rate || 0,
+          commissionEarnings:
+            s.commissionEarnings ||
+            ((s.commissionRate || s.employee.commissionRate?.rate || 0) * s.totalPrice) / 100
         }))
       : []
   };
@@ -78,20 +188,50 @@ const formatSalonEntry = (entry: SalonEntryWithRelations, userId: string) => {
 const createSalonEntry = async (payload: ISalonEntryCreatePayload) => {
   const { splits, ...entryData } = payload;
 
-  const result = await prisma.$transaction(async (tx) => {
+  const mainEmployee = await prisma.user.findUnique({
+    where: { id: payload.employeeId },
+    include: { commissionRate: true }
+  });
+
+  const mainRate = mainEmployee?.commissionRate?.rate || 0;
+  const hair = entryData.addHair || 0;
+  const actualPrice = entryData.actualPrice ?? entryData.totalPrice - hair;
+
+  // Calculate main employee's share if splitting
+  let mainEmployeePrice = actualPrice;
+  if (entryData.isSplit && splits && splits.length > 0) {
+    const splitPriceSum = splits.reduce((sum, split) => sum + split.totalPrice, 0);
+    mainEmployeePrice -= splitPriceSum;
+  }
+  const mainEarnings = (mainEmployeePrice * mainRate) / 100;
+
+  const result = await prisma.$transaction(async (tx: Prisma.TransactionClient) => {
+    // We need to fetch rates for split employees too
+    const splitData: SalonEntrySplitCreateData[] = [];
+    if (entryData.isSplit && splits && splits.length > 0) {
+      for (const split of splits) {
+        const emp = await tx.user.findUnique({
+          where: { id: split.employeeId },
+          include: { commissionRate: true }
+        });
+        const rate = emp?.commissionRate?.rate || 0;
+        splitData.push({
+          employeeId: split.employeeId,
+          totalPrice: split.totalPrice,
+          tips: split.tips || 0,
+          commissionRate: rate,
+          commissionEarnings: (split.totalPrice * rate) / 100
+        });
+      }
+    }
+
     const salonEntry = await tx.salonEntry.create({
       data: {
         ...entryData,
-        splits:
-          entryData.isSplit && splits && splits.length > 0
-            ? {
-                create: splits.map((split) => ({
-                  employeeId: split.employeeId,
-                  totalPrice: split.totalPrice,
-                  tips: split.tips || 0
-                }))
-              }
-            : undefined
+        actualPrice,
+        commissionRate: mainRate,
+        commissionEarnings: mainEarnings,
+        splits: splitData.length > 0 ? { create: splitData } : undefined
       },
       include: {
         splits: true
@@ -124,11 +264,9 @@ const getAllSalonEntries = async (
     if (managerUser?.salonId) {
       andConditions.push({ salonId: managerUser.salonId });
     } else {
-      // If manager has no salon assigned, they see nothing
       andConditions.push({ id: 'none' });
     }
   }
-  // ADMIN has no RBAC restrictions
 
   // 2. Filter Conditions
   if (filters.startDate && filters.endDate) {
@@ -175,66 +313,84 @@ const getAllSalonEntries = async (
     andConditions.length > 0 ? { AND: andConditions } : {};
 
   // 3. Fetch Paginated Data
-  const result = await prisma.salonEntry.findMany({
+  const result = (await prisma.salonEntry.findMany({
     where: whereConditions,
     skip,
     take: limit,
     orderBy: { createdAt: 'desc' },
     include: salonEntryInclude
-  });
+  })) as SalonEntryWithRelations[];
 
   const total = await prisma.salonEntry.count({
     where: whereConditions
   });
 
-  // Calculate metadata via raw aggregation to get dataset totals
-  const allMatchingEntries = await prisma.salonEntry.findMany({
+  // Calculate metadata
+  const allMatchingEntries = (await prisma.salonEntry.findMany({
     where: whereConditions,
-    select: {
-      employeeId: true,
-      totalPrice: true,
-      tips: true,
-      isSplit: true,
-      splits: { select: { employeeId: true, totalPrice: true, tips: true } }
+    include: {
+      splits: true
     }
-  });
+  })) as SalonEntrySummary[];
 
   let totalPrices = 0;
   let totalTips = 0;
+  let totalCommissionEarnings = 0;
   let loggedInUserPrices = 0;
   let loggedInUserTipsMeta = 0;
+  let loggedInUserCommissionEarnings = 0;
 
-  allMatchingEntries.forEach((entry) => {
+  allMatchingEntries.forEach((entry: SalonEntrySummary) => {
     totalPrices += entry.totalPrice;
     totalTips += entry.tips || 0;
 
+    // Use stored earnings or fallback
+    let entryTotalCommission = entry.commissionEarnings || 0;
+    if (entry.isSplit && entry.splits) {
+      entry.splits.forEach((s: SalonEntrySplitSummary) => {
+        entryTotalCommission += s.commissionEarnings || 0;
+      });
+    }
+    totalCommissionEarnings += entryTotalCommission;
+
     let rowLoggedInUserTips = 0;
     let rowLoggedInUserTotalPrice = 0;
+    let rowLoggedInUserCommEarnings = 0;
 
     if (entry.employeeId === userId) {
       rowLoggedInUserTips = entry.tips || 0;
       rowLoggedInUserTotalPrice = entry.totalPrice;
+      rowLoggedInUserCommEarnings = entry.commissionEarnings || 0;
 
       if (entry.isSplit && entry.splits && entry.splits.length > 0) {
-        const splitTipsSum = entry.splits.reduce((sum, split) => sum + (split.tips || 0), 0);
-        const splitPriceSum = entry.splits.reduce((sum, split) => sum + split.totalPrice, 0);
-
+        const splitTipsSum = entry.splits.reduce(
+          (sum: number, split: SalonEntrySplitSummary) => sum + (split.tips || 0),
+          0
+        );
+        const splitPriceSum = entry.splits.reduce(
+          (sum: number, split: SalonEntrySplitSummary) => sum + split.totalPrice,
+          0
+        );
         rowLoggedInUserTips -= splitTipsSum;
         rowLoggedInUserTotalPrice -= splitPriceSum;
       }
     } else if (entry.isSplit && entry.splits) {
-      const userSplit = entry.splits.find((s) => s.employeeId === userId);
+      const userSplit = entry.splits.find((s: SalonEntrySplitSummary) => s.employeeId === userId);
       if (userSplit) {
         rowLoggedInUserTips = userSplit.tips || 0;
         rowLoggedInUserTotalPrice = userSplit.totalPrice;
+        rowLoggedInUserCommEarnings = userSplit.commissionEarnings || 0;
       }
     }
 
     loggedInUserPrices += rowLoggedInUserTotalPrice;
     loggedInUserTipsMeta += rowLoggedInUserTips;
+    loggedInUserCommissionEarnings += rowLoggedInUserCommEarnings;
   });
 
-  const formattedData = result.map((entry) => formatSalonEntry(entry, userId));
+  const formattedData = result.map((entry: SalonEntryWithRelations) =>
+    formatSalonEntry(entry, userId)
+  );
 
   return {
     meta: {
@@ -243,8 +399,10 @@ const getAllSalonEntries = async (
       total,
       totalPrices,
       totalTips,
+      totalCommissionEarnings,
       loggedInUserPrices,
-      loggedInUserTips: loggedInUserTipsMeta
+      loggedInUserTips: loggedInUserTipsMeta,
+      loggedInUserCommissionEarnings
     },
     data: formattedData
   };
@@ -269,7 +427,7 @@ const changeStatus = async (
     include: salonEntryInclude
   });
 
-  return formatSalonEntry(updatedEntry, entry.employeeId);
+  return formatSalonEntry(updatedEntry as SalonEntryWithRelations, entry.employeeId);
 };
 
 const getSingleSalonEntry = async (id: string, userId: string, role: string) => {
@@ -284,7 +442,8 @@ const getSingleSalonEntry = async (id: string, userId: string, role: string) => 
 
   if (role === 'EMPLOYEE') {
     const canAccess =
-      entry.employeeId === userId || entry.splits?.some((split) => split.employeeId === userId);
+      entry.employeeId === userId ||
+      entry.splits?.some((split: SalonEntrySplit) => split.employeeId === userId);
     if (!canAccess) {
       throw new AppError(403, 'You do not have permission to view this salon entry.');
     }
@@ -297,7 +456,7 @@ const getSingleSalonEntry = async (id: string, userId: string, role: string) => 
     }
   }
 
-  return formatSalonEntry(entry, userId);
+  return formatSalonEntry(entry as SalonEntryWithRelations, userId);
 };
 
 const updateSalonEntry = async (
@@ -307,7 +466,8 @@ const updateSalonEntry = async (
   userId: string
 ) => {
   const existingEntry = await prisma.salonEntry.findUnique({
-    where: { id }
+    where: { id },
+    include: { splits: true }
   });
 
   if (!existingEntry) {
@@ -323,36 +483,74 @@ const updateSalonEntry = async (
 
   const { splits, ...updateData } = payload;
 
-  const result = await prisma.$transaction(async (tx) => {
-    // If splits are provided, we delete the old ones and create the new ones
+  // Recalculate actualPrice if totalPrice or addHair is updated
+  let actualPrice = updateData.actualPrice;
+  if (
+    actualPrice === undefined &&
+    (updateData.totalPrice !== undefined || updateData.addHair !== undefined)
+  ) {
+    const newTotal = updateData.totalPrice ?? existingEntry.totalPrice;
+    const newHair = updateData.addHair ?? existingEntry.addHair ?? 0;
+    actualPrice = newTotal - newHair;
+  } else if (actualPrice === undefined) {
+    actualPrice =
+      (existingEntry as any).actualPrice || existingEntry.totalPrice - (existingEntry.addHair || 0);
+  }
+
+  // Handle commission recalculation upon update
+  const empId = updateData.employeeId ?? existingEntry.employeeId;
+  const mainEmployee = await prisma.user.findUnique({
+    where: { id: empId },
+    include: { commissionRate: true }
+  });
+  const mainRate = mainEmployee?.commissionRate?.rate || 0;
+
+  const result = await prisma.$transaction(async (tx: Prisma.TransactionClient) => {
+    let splitData: SalonEntrySplitCreateData[] | undefined = undefined;
     if (splits !== undefined) {
       await tx.splitEntry.deleteMany({
         where: { salonEntryId: id }
       });
+
+      if (splits && splits.length > 0) {
+        splitData = [];
+        for (const split of splits) {
+          const emp = await tx.user.findUnique({
+            where: { id: split.employeeId },
+            include: { commissionRate: true }
+          });
+          const rate = emp?.commissionRate?.rate || 0;
+          splitData.push({
+            employeeId: split.employeeId,
+            totalPrice: split.totalPrice,
+            tips: split.tips || 0,
+            commissionRate: rate,
+            commissionEarnings: (split.totalPrice * rate) / 100
+          });
+        }
+      }
     }
+
+    // Calculate main employee share
+    const finalSplits: Array<{ totalPrice: number }> =
+      splits !== undefined ? splits || [] : existingEntry.splits;
+    const splitPriceSum = finalSplits.reduce(
+      (sum: number, s: { totalPrice: number }) => sum + s.totalPrice,
+      0
+    );
+    const mainEmployeePrice = (actualPrice ?? 0) - splitPriceSum;
+    const mainEarnings = (mainEmployeePrice * mainRate) / 100;
 
     const salonEntry = await tx.salonEntry.update({
       where: { id },
       data: {
         ...updateData,
-        splits: splits
-          ? {
-              create: splits.map((split) => ({
-                employeeId: split.employeeId,
-                totalPrice: split.totalPrice,
-                tips: split.tips || 0
-              }))
-            }
-          : undefined
+        actualPrice,
+        commissionRate: mainRate,
+        commissionEarnings: mainEarnings,
+        splits: splitData ? { create: splitData } : undefined
       },
-      include: {
-        ...salonEntryInclude,
-        splits: {
-          include: {
-            employee: { select: { id: true, fullName: true } }
-          }
-        }
-      }
+      include: salonEntryInclude
     });
 
     return salonEntry;
@@ -370,7 +568,7 @@ const deleteSalonEntry = async (id: string) => {
     throw new AppError(404, 'Salon entry not found.');
   }
 
-  const result = await prisma.$transaction(async (tx) => {
+  const result = await prisma.$transaction(async (tx: Prisma.TransactionClient) => {
     await tx.splitEntry.deleteMany({
       where: { salonEntryId: id }
     });

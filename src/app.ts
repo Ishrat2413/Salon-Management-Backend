@@ -11,6 +11,9 @@ import sendResponse from './app/utils/sendResponse';
 
 const app: Application = express();
 
+// Trust the reverse proxy (Nginx) to resolve the 'X-Forwarded-For' rate limit issue
+app.set('trust proxy', 1);
+
 const corsOptions: CorsOptions = {
   origin:
     config.corsOrigin === '*'

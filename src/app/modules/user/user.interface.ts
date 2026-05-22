@@ -6,6 +6,11 @@ export interface IChangeRolePayload {
 
 export interface IChangeStatusPayload {
   status: 'PENDING' | 'ACTIVE' | 'SUSPEND' | 'REJECTED';
+  commissionRate?: number;
+}
+
+export interface IUpdateCommissionRatePayload {
+  commissionRate: number;
 }
 
 export interface IUserFilterParams {

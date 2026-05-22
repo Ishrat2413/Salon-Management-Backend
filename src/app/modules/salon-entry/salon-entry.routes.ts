@@ -31,4 +31,6 @@ router.patch(
   SalonEntryController.updateSalonEntry
 );
 
+router.delete('/:id', auth('MANAGER', 'ADMIN'), SalonEntryController.deleteSalonEntry);
+
 export const SalonEntryRoutes = router;

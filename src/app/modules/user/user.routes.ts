@@ -8,6 +8,8 @@ import { UserValidation } from './user.validation';
 const router = Router();
 
 router.get('/me', auth('EMPLOYEE', 'MANAGER', 'ADMIN'), UserController.getMe);
+router.patch('/me/profile', auth('EMPLOYEE', 'MANAGER', 'ADMIN'), UserController.updateProfile);
+router.delete('/me', auth('EMPLOYEE', 'MANAGER', 'ADMIN'), UserController.deleteMe);
 router.get('/', auth('EMPLOYEE', 'MANAGER', 'ADMIN'), UserController.getAllUsers);
 router.patch(
   '/:id/role',
@@ -20,6 +22,12 @@ router.patch(
   auth('ADMIN'),
   validateRequest(UserValidation.changeStatus),
   UserController.changeStatus
+);
+router.patch(
+  '/:id/commission-rate',
+  auth('ADMIN'),
+  validateRequest(UserValidation.updateCommissionRate),
+  UserController.updateCommissionRate
 );
 router.delete(
   '/:id',

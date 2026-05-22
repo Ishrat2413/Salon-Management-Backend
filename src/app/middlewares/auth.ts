@@ -4,6 +4,8 @@ import jwt from 'jsonwebtoken';
 import config from '../config';
 import AppError from '../errors/AppError';
 import type { IAuthUser, UserRole } from '../interfaces/auth.interface';
+import catchAsync from '../utils/catchAsync';
+import prisma from '../utils/prisma';
 
 const isAuthUser = (payload: unknown): payload is IAuthUser => {
   if (!payload || typeof payload !== 'object') {
@@ -21,7 +23,7 @@ const isAuthUser = (payload: unknown): payload is IAuthUser => {
 };
 
 const auth = (...requiredRoles: UserRole[]): RequestHandler => {
-  return (req, _res, next) => {
+  return catchAsync(async (req, _res, next) => {
     const authHeader = req.headers.authorization;
 
     if (!authHeader?.startsWith('Bearer ')) {
@@ -30,23 +32,38 @@ const auth = (...requiredRoles: UserRole[]): RequestHandler => {
 
     const token = authHeader.split(' ')[1];
 
+    let decoded;
     try {
-      const decoded = jwt.verify(token, config.jwt.accessSecret);
-
-      if (!isAuthUser(decoded)) {
-        return next(new AppError(401, 'Invalid authorization token.'));
-      }
-
-      if (requiredRoles.length > 0 && !requiredRoles.includes(decoded.role)) {
-        return next(new AppError(403, 'You do not have permission to access this resource.'));
-      }
-
-      req.user = decoded;
-      return next();
+      decoded = jwt.verify(token, config.jwt.accessSecret);
     } catch (_error) {
       return next(new AppError(401, 'Invalid or expired authorization token.'));
     }
-  };
+
+    if (!isAuthUser(decoded)) {
+      return next(new AppError(401, 'Invalid authorization token.'));
+    }
+
+    // Verify user still exists in DB
+    const user = await prisma.user.findUnique({
+      where: { id: decoded.userId }
+    });
+
+    if (!user) {
+      return next(new AppError(401, 'The user belonging to this token no longer exists.'));
+    }
+
+    // Prevent suspended or rejected users from continuing
+    if (user.status === 'SUSPEND' || user.status === 'REJECTED') {
+      return next(new AppError(403, 'Your account is disabled.'));
+    }
+
+    if (requiredRoles.length > 0 && !requiredRoles.includes(decoded.role)) {
+      return next(new AppError(403, 'You do not have permission to access this resource.'));
+    }
+
+    req.user = decoded;
+    return next();
+  });
 };
 
 export default auth;

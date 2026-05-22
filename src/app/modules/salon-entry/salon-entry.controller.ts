@@ -23,6 +23,7 @@ const getAllSalonEntries: RequestHandler = catchAsync(async (req, res) => {
   const endDate = req.query.endDate as string | undefined;
   const employeeId = req.query.employeeId as string | undefined;
   const salonId = req.query.salonId as string | undefined;
+  const status = req.query.status as any;
 
   if (!req.user) {
     throw new AppError(401, 'Unauthorized');
@@ -34,7 +35,7 @@ const getAllSalonEntries: RequestHandler = catchAsync(async (req, res) => {
   const result = await SalonEntryService.getAllSalonEntries(
     userId,
     role,
-    { searchTerm, startDate, endDate, employeeId, salonId },
+    { searchTerm, startDate, endDate, employeeId, salonId, status },
     page,
     limit
   );
@@ -76,7 +77,7 @@ const changeStatus: RequestHandler = catchAsync(async (req, res) => {
     throw new AppError(401, 'Unauthorized');
   }
 
-  const result = await SalonEntryService.changeStatus(id as string, req.body);
+  const result = await SalonEntryService.changeStatus(id as string, req.body, req.user.userId);
 
   sendResponse(res, {
     statusCode: 200,
@@ -106,10 +107,24 @@ const updateSalonEntry: RequestHandler = catchAsync(async (req, res) => {
   });
 });
 
+const deleteSalonEntry: RequestHandler = catchAsync(async (req, res) => {
+  const { id } = req.params;
+
+  const result = await SalonEntryService.deleteSalonEntry(id as string);
+
+  sendResponse(res, {
+    statusCode: 200,
+    success: true,
+    message: 'Salon entry deleted successfully.',
+    data: result
+  });
+});
+
 export const SalonEntryController = {
   createSalonEntry,
   getAllSalonEntries,
   getSingleSalonEntry,
   changeStatus,
-  updateSalonEntry
+  updateSalonEntry,
+  deleteSalonEntry
 };

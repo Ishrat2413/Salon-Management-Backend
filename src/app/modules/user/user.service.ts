@@ -31,9 +31,14 @@ const getAllUsers = async (filters: IUserFilterParams, page: number, limit: numb
   const andConditions: Prisma.UserWhereInput[] = [];
 
   if (filters.role) {
-    andConditions.push({ role: filters.role });
+    if (typeof filters.role === 'string') {
+      const rolesArray = filters.role.split(',').map(r => r.trim());
+      andConditions.push({ role: { in: rolesArray as any[] } });
+    } else {
+      andConditions.push({ role: filters.role as any });
+    }
   } else {
-    // Default behavior: We explicitly only want to return Employees and Managers, never Admins.
+    // Default behavior: Include all users
     andConditions.push({ role: { in: ['EMPLOYEE', 'MANAGER', 'ADMIN'] } });
   }
 

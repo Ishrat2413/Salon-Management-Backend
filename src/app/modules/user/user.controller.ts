@@ -66,6 +66,18 @@ const changeStatus: RequestHandler = catchAsync(async (req, res) => {
   });
 });
 
+const updateCommissionRate: RequestHandler = catchAsync(async (req, res) => {
+  const { id } = req.params;
+  const result = await UserService.updateCommissionRate(id as string, req.body);
+
+  sendResponse(res, {
+    statusCode: 200,
+    success: true,
+    message: 'Commission rate updated successfully.',
+    data: result
+  });
+});
+
 const deleteUser: RequestHandler = catchAsync(async (req, res) => {
   const { id } = req.params;
   const result = await UserService.deleteUser(id as string);
@@ -99,6 +111,7 @@ export const UserController = {
   getAllUsers,
   changeRole,
   changeStatus,
+  updateCommissionRate,
   deleteUser,
   deleteMe
 };

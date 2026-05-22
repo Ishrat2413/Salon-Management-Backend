@@ -27,23 +27,35 @@ model Service {
 }
 
 model User {
-  id                   String       @id @default(uuid())
+  id                   String          @id @default(uuid())
   fullName             String
-  email                String       @unique
+  email                String          @unique
   password             String
-  role                 Role         @default(EMPLOYEE)
-  status               UserStatus   @default(PENDING)
+  role                 Role            @default(EMPLOYEE)
+  status               UserStatus      @default(PENDING)
   salonId              String?
-  salon                Salon?       @relation(fields: [salonId], references: [id])
-  managedSalon         Salon?       @relation("SalonManager")
-  mainEntries          SalonEntry[] @relation("MainEmployee")
-  splitEntries         SplitEntry[] @relation("SplitEmployee")
+  salon                Salon?          @relation(fields: [salonId], references: [id])
+  managedSalon         Salon?          @relation("SalonManager")
+  mainEntries          SalonEntry[]    @relation("MainEmployee")
+  splitEntries         SplitEntry[]    @relation("SplitEmployee")
+  commissionRate       CommissionRate?
   passwordResetCode    String?
   passwordResetExpires DateTime?
-  createdAt            DateTime     @default(now())
-  updatedAt            DateTime     @updatedAt
+  createdAt            DateTime        @default(now())
+  updatedAt            DateTime        @updatedAt
 
   @@map("users")
+}
+
+model CommissionRate {
+  id        String   @id @default(uuid())
+  userId    String   @unique
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  rate      Int
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@map("commission_rates")
 }
 
 model SalonEntry {
@@ -56,6 +68,7 @@ model SalonEntry {
   employee      User             @relation("MainEmployee", fields: [employeeId], references: [id])
   clientName    String?
   totalPrice    Int
+  actualPrice   Int              @default(0)
   tips          Int?             @default(0)
   addHair       Int?             @default(0)
   notes         String?

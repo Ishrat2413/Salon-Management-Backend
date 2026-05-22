@@ -8,6 +8,7 @@ import { UserValidation } from './user.validation';
 const router = Router();
 
 router.get('/me', auth('EMPLOYEE', 'MANAGER', 'ADMIN'), UserController.getMe);
+router.patch('/me/profile', auth('EMPLOYEE', 'MANAGER', 'ADMIN'), UserController.updateProfile);
 router.delete('/me', auth('EMPLOYEE', 'MANAGER', 'ADMIN'), UserController.deleteMe);
 router.get('/', auth('EMPLOYEE', 'MANAGER', 'ADMIN'), UserController.getAllUsers);
 router.patch(

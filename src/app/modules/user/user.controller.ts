@@ -21,6 +21,22 @@ const getMe: RequestHandler = catchAsync(async (req, res) => {
   });
 });
 
+const updateProfile: RequestHandler = catchAsync(async (req, res) => {
+  if (!req.user) {
+    throw new AppError(401, 'You are not authorized.');
+  }
+
+  const userId = req.user.userId;
+  const result = await UserService.updateProfile(userId, req.body);
+
+  sendResponse(res, {
+    statusCode: 200,
+    success: true,
+    message: 'Profile updated successfully.',
+    data: result
+  });
+});
+
 const getAllUsers: RequestHandler = catchAsync(async (req, res) => {
   const page = Number(req.query.page) || 1;
   const limit = Number(req.query.limit) || 10;
@@ -108,6 +124,7 @@ const deleteMe: RequestHandler = catchAsync(async (req, res) => {
 
 export const UserController = {
   getMe,
+  updateProfile,
   getAllUsers,
   changeRole,
   changeStatus,

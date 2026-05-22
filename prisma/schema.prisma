@@ -38,6 +38,7 @@ model User {
   managedSalon         Salon?          @relation("SalonManager")
   mainEntries          SalonEntry[]    @relation("MainEmployee")
   splitEntries         SplitEntry[]    @relation("SplitEmployee")
+  approvedEntries      SalonEntry[]    @relation("ApprovedBy")
   commissionRate       CommissionRate?
   passwordResetCode    String?
   passwordResetExpires DateTime?
@@ -78,6 +79,8 @@ model SalonEntry {
   splits        SplitEntry[]
   status        SalonEntryStatus @default(PENDING)
   statusComment String?
+  approvedById  String?
+  approvedBy    User?            @relation("ApprovedBy", fields: [approvedById], references: [id])
 
   createdAt     DateTime         @default(now())
   updatedAt     DateTime         @updatedAt

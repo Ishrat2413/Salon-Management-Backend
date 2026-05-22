@@ -40,6 +40,7 @@ export interface ISalonEntryFilterParams {
   endDate?: string;
   employeeId?: string;
   salonId?: string;
+  status?: 'PENDING' | 'APPROVED' | 'REJECTED';
 }
 
 export interface IChangeSalonEntryStatusPayload {

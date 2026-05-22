@@ -33,6 +33,8 @@ model User {
   password             String
   role                 Role            @default(EMPLOYEE)
   status               UserStatus      @default(PENDING)
+  phoneNumber          String?
+  address              String?
   salonId              String?
   salon                Salon?          @relation(fields: [salonId], references: [id])
   managedSalon         Salon?          @relation("SalonManager")

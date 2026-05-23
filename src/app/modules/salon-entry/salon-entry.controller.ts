@@ -77,7 +77,12 @@ const changeStatus: RequestHandler = catchAsync(async (req, res) => {
     throw new AppError(401, 'Unauthorized');
   }
 
-  const result = await SalonEntryService.changeStatus(id as string, req.body, req.user.userId);
+  const result = await SalonEntryService.changeStatus(
+    id as string,
+    req.body,
+    req.user.userId,
+    req.user.role
+  );
 
   sendResponse(res, {
     statusCode: 200,

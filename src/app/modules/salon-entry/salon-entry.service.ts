@@ -116,10 +116,11 @@ const formatSalonEntry = (
   if (entry.employeeId === effectiveTargetId) {
     loggedInUserTips = entry.tips || 0;
     loggedInUserTotalPrice = entry.totalPrice - (entry.addHair || 0);
+    loggedInUserActualPrice = entry.actualPrice;
 
     // Fallback logic for splits
     if (entry.isSplit && entry.splits && entry.splits.length > 0) {
-      const otherSplits = entry.splits.filter((s: SplitEntrySummary) => s.employeeId !== userId);
+      const otherSplits = entry.splits.filter((s: SplitEntrySummary) => s.employeeId !== effectiveTargetId);
       const splitTipsSum = otherSplits.reduce(
         (sum: number, split: SplitEntrySummary) => sum + (split.tips || 0),
         0
@@ -143,9 +144,7 @@ const formatSalonEntry = (
     displayEmployeeName = entry.employee.fullName;
     displayEmployeeId = entry.employeeId;
   } else if (entry.isSplit && entry.splits) {
-    const userSplit = entry.splits.find(
-      (s: SplitEntrySummary) => s.employeeId === effectiveTargetId
-    );
+    const userSplit = entry.splits.find((s: SplitEntrySummary) => s.employeeId === effectiveTargetId);
     if (userSplit) {
       loggedInUserTips = userSplit.tips || 0;
       loggedInUserTotalPrice = userSplit.totalPrice;
@@ -178,11 +177,11 @@ const formatSalonEntry = (
     approvedByName: entry.approvedBy?.fullName || null,
     createdAt: entry.createdAt,
     totalPrice: role === 'EMPLOYEE' ? 0 : entry.totalPrice,
-    actualPrice: loggedInUserActualPrice, // Return the share as the main actualPrice
-    tips: loggedInUserTips, // Return the share as the main tips
+    actualPrice: role === 'EMPLOYEE' ? loggedInUserActualPrice : (entry.actualPrice || 0),
+    tips: role === 'EMPLOYEE' ? loggedInUserTips : (entry.tips || 0),
     addHair: role === 'EMPLOYEE' ? 0 : entry.addHair || 0,
     notes: entry.notes || null,
-    commissionRate: loggedInUserCommissionRate, // Return the share rate
+    commissionRate: loggedInUserCommissionRate,
     loggedInUserTotalPrice: role === 'EMPLOYEE' ? 0 : loggedInUserTotalPrice,
     loggedInUserActualPrice,
     loggedInUserTips,

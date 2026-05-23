@@ -87,10 +87,9 @@ type SplitEntryCreatePayload = {
   commissionRate: number;
   commissionEarnings: number;
 };
-
 type SalonEntryMetaRow = Pick<
   SalonEntryWithRelations,
-  'employeeId' | 'totalPrice' | 'tips' | 'commissionEarnings' | 'isSplit'
+  'employeeId' | 'totalPrice' | 'tips' | 'commissionEarnings' | 'isSplit' | 'addHair'
 > & {
   splits: Array<
     Pick<SplitEntrySummary, 'employeeId' | 'totalPrice' | 'tips' | 'commissionEarnings'>
@@ -116,16 +115,16 @@ const formatSalonEntry = (
   // Use snapshot fields if available, otherwise fallback to dynamic calculation (legacy)
   if (entry.employeeId === effectiveTargetId) {
     loggedInUserTips = entry.tips || 0;
-    loggedInUserTotalPrice = entry.totalPrice;
-    loggedInUserActualPrice = entry.actualPrice || 0;
+    loggedInUserTotalPrice = entry.totalPrice - (entry.addHair || 0);
 
     // Fallback logic for splits
     if (entry.isSplit && entry.splits && entry.splits.length > 0) {
-      const splitTipsSum = entry.splits.reduce(
+      const otherSplits = entry.splits.filter((s: SplitEntrySummary) => s.employeeId !== userId);
+      const splitTipsSum = otherSplits.reduce(
         (sum: number, split: SplitEntrySummary) => sum + (split.tips || 0),
         0
       );
-      const splitPriceSum = entry.splits.reduce(
+      const splitPriceSum = otherSplits.reduce(
         (sum: number, split: SplitEntrySummary) => sum + split.totalPrice,
         0
       );
@@ -221,7 +220,8 @@ const createSalonEntry = async (payload: ISalonEntryCreatePayload) => {
   // Calculate main employee's share if splitting
   let mainEmployeePrice = actualPrice;
   if (entryData.isSplit && splits && splits.length > 0) {
-    const splitPriceSum = splits.reduce((sum, split) => sum + split.totalPrice, 0);
+    const otherSplits = splits.filter((split) => split.employeeId !== payload.employeeId);
+    const splitPriceSum = otherSplits.reduce((sum, split) => sum + split.totalPrice, 0);
     mainEmployeePrice -= splitPriceSum;
   }
   const mainEarnings = (mainEmployeePrice * mainRate) / 100;
@@ -280,14 +280,6 @@ const getAllSalonEntries = async (
     andConditions.push({
       OR: [{ employeeId: userId }, { splits: { some: { employeeId: userId } } }]
     });
-  } else if (role === 'MANAGER') {
-    const managerUser = await prisma.user.findUnique({ where: { id: userId } });
-    if (managerUser?.salonId) {
-      andConditions.push({ salonId: managerUser.salonId });
-    } else {
-      // If manager has no salon assigned, they see nothing
-      andConditions.push({ id: 'none' });
-    }
   }
 
   // 2. Filter Conditions
@@ -382,41 +374,42 @@ const getAllSalonEntries = async (
     totalCommissionEarnings += entryTotalCommission;
 
     if (targetIdForMeta) {
-      let rowLoggedInUserTips = 0;
-      let rowLoggedInUserActualPriceShare = 0;
-      let rowLoggedInUserCommEarnings = 0;
+      let rowTips = 0;
+      let rowPrice = 0;
+      let rowCommEarnings = 0;
 
       if (entry.employeeId === targetIdForMeta) {
-        rowLoggedInUserTips = entry.tips || 0;
-        rowLoggedInUserActualPriceShare = entry.actualPrice || 0;
-        rowLoggedInUserCommEarnings = entry.commissionEarnings || 0;
+        rowTips = entry.tips || 0;
+        rowPrice = entry.totalPrice - (entry.addHair || 0);
+        rowCommEarnings = entry.commissionEarnings || 0;
 
         if (entry.isSplit && entry.splits && entry.splits.length > 0) {
-          const splitTipsSum = entry.splits.reduce(
+          const otherSplits = entry.splits.filter((s: SalonEntryMetaRow['splits'][number]) => s.employeeId !== targetIdForMeta);
+          const splitTipsSum = otherSplits.reduce(
             (sum: number, split: SalonEntryMetaRow['splits'][number]) => sum + (split.tips || 0),
             0
           );
-          const splitPriceSum = entry.splits.reduce(
+          const splitPriceSum = otherSplits.reduce(
             (sum: number, split: SalonEntryMetaRow['splits'][number]) => sum + split.totalPrice,
             0
           );
-          rowLoggedInUserTips -= splitTipsSum;
-          rowLoggedInUserActualPriceShare -= splitPriceSum;
+          rowTips -= splitTipsSum;
+          rowPrice -= splitPriceSum;
         }
       } else if (entry.isSplit && entry.splits) {
         const userSplit = entry.splits.find(
           (s: SalonEntryMetaRow['splits'][number]) => s.employeeId === targetIdForMeta
         );
         if (userSplit) {
-          rowLoggedInUserTips = userSplit.tips || 0;
-          rowLoggedInUserActualPriceShare = userSplit.totalPrice;
-          rowLoggedInUserCommEarnings = userSplit.commissionEarnings || 0;
+          rowTips = userSplit.tips || 0;
+          rowPrice = userSplit.totalPrice;
+          rowCommEarnings = userSplit.commissionEarnings || 0;
         }
       }
 
-      loggedInUserPrices += rowLoggedInUserActualPriceShare;
-      loggedInUserTipsMeta += rowLoggedInUserTips;
-      loggedInUserCommissionEarnings += rowLoggedInUserCommEarnings;
+      loggedInUserPrices += rowPrice;
+      loggedInUserTipsMeta += rowTips;
+      loggedInUserCommissionEarnings += rowCommEarnings;
     }
   });
 
@@ -567,10 +560,11 @@ const updateSalonEntry = async (
     }
 
     // Calculate main employee share
-    const finalSplits: Array<{ totalPrice: number }> =
+    const finalSplits: Array<any> =
       splits !== undefined ? splits || [] : existingEntry.splits;
-    const splitPriceSum = finalSplits.reduce(
-      (sum: number, split: { totalPrice: number }) => sum + split.totalPrice,
+    const otherFinalSplits = finalSplits.filter(s => s.employeeId !== empId);
+    const splitPriceSum = otherFinalSplits.reduce(
+      (sum: number, split: any) => sum + split.totalPrice,
       0
     );
     const mainEmployeePrice = (actualPrice ?? 0) - splitPriceSum;

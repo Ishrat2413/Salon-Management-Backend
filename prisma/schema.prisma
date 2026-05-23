@@ -41,6 +41,7 @@ model User {
   mainEntries          SalonEntry[]    @relation("MainEmployee")
   splitEntries         SplitEntry[]    @relation("SplitEmployee")
   approvedEntries      SalonEntry[]    @relation("ApprovedBy")
+  editedEntries        SalonEntry[]    @relation("EditedBy")
   commissionRate       CommissionRate?
   passwordResetCode    String?
   passwordResetExpires DateTime?
@@ -112,6 +113,8 @@ enum Role {
 
 enum UserStatus {
   PENDING
+  editedById    String?
+  editedBy      User?            @relation("EditedBy", fields: [editedById], references: [id])
   ACTIVE
   SUSPEND
   REJECTED

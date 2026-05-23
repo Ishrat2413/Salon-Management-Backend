@@ -1,4 +1,4 @@
-import { Prisma } from '.prisma/client';
+import { Prisma } from '@prisma/client';
 import AppError from '../../errors/AppError';
 import prisma from '../../utils/prisma';
 import type {
@@ -251,19 +251,14 @@ const getAllSalonEntries = async (
   const skip = (page - 1) * limit;
   const andConditions: Prisma.SalonEntryWhereInput[] = [];
 
+  // Standardize role to uppercase to avoid casing issues
+  const upperRole = role.toUpperCase();
+
   // 1. RBAC Conditions
-  if (role === 'EMPLOYEE') {
+  if (upperRole === 'EMPLOYEE') {
     andConditions.push({
       OR: [{ employeeId: userId }, { splits: { some: { employeeId: userId } } }]
     });
-  } else if (role === 'MANAGER') {
-    const managerUser = await prisma.user.findUnique({ where: { id: userId } });
-    if (managerUser?.salonId) {
-      andConditions.push({ salonId: managerUser.salonId });
-    } else {
-      // If manager has no salon assigned, they see nothing
-      andConditions.push({ id: 'none' });
-    }
   }
 
   // 2. Filter Conditions
@@ -446,18 +441,12 @@ const getSingleSalonEntry = async (id: string, userId: string, role: string) => 
     throw new AppError(404, 'Salon entry not found.');
   }
 
-  if (role === 'EMPLOYEE') {
+  const upperRole = role.toUpperCase();
+  if (upperRole === 'EMPLOYEE') {
     const canAccess =
       entry.employeeId === userId ||
       entry.splits?.some((split: any) => split.employeeId === userId);
     if (!canAccess) {
-      throw new AppError(403, 'You do not have permission to view this salon entry.');
-    }
-  }
-
-  if (role === 'MANAGER') {
-    const managerUser = await prisma.user.findUnique({ where: { id: userId } });
-    if (!managerUser || managerUser.salonId !== entry.salonId) {
       throw new AppError(403, 'You do not have permission to view this salon entry.');
     }
   }
@@ -478,13 +467,6 @@ const updateSalonEntry = async (
 
   if (!existingEntry) {
     throw new AppError(404, 'Salon entry not found.');
-  }
-
-  if (userRole === 'MANAGER') {
-    const managerUser = await prisma.user.findUnique({ where: { id: userId } });
-    if (!managerUser || managerUser.salonId !== existingEntry.salonId) {
-      throw new AppError(403, 'You do not have permission to edit entries for this salon.');
-    }
   }
 
   const { splits, ...updateData } = payload;

@@ -90,7 +90,7 @@ type SplitEntryCreatePayload = {
 
 type SalonEntryMetaRow = Pick<
   SalonEntryWithRelations,
-  'employeeId' | 'totalPrice' | 'tips' | 'commissionEarnings' | 'isSplit'
+  'employeeId' | 'totalPrice' | 'tips' | 'commissionEarnings' | 'isSplit' | 'addHair'
 > & {
   splits: Array<
     Pick<SplitEntrySummary, 'employeeId' | 'totalPrice' | 'tips' | 'commissionEarnings'>
@@ -106,15 +106,16 @@ const formatSalonEntry = (entry: SalonEntryWithRelations, userId: string) => {
   // Use snapshot fields if available, otherwise fallback to dynamic calculation (legacy)
   if (entry.employeeId === userId) {
     loggedInUserTips = entry.tips || 0;
-    loggedInUserTotalPrice = entry.totalPrice;
+    loggedInUserTotalPrice = entry.totalPrice - (entry.addHair || 0);
 
     // Fallback logic
     if (entry.isSplit && entry.splits && entry.splits.length > 0) {
-      const splitTipsSum = entry.splits.reduce(
+      const otherSplits = entry.splits.filter((s: SplitEntrySummary) => s.employeeId !== userId);
+      const splitTipsSum = otherSplits.reduce(
         (sum: number, split: SplitEntrySummary) => sum + (split.tips || 0),
         0
       );
-      const splitPriceSum = entry.splits.reduce(
+      const splitPriceSum = otherSplits.reduce(
         (sum: number, split: SplitEntrySummary) => sum + split.totalPrice,
         0
       );
@@ -197,7 +198,8 @@ const createSalonEntry = async (payload: ISalonEntryCreatePayload) => {
   // Calculate main employee's share if splitting
   let mainEmployeePrice = actualPrice;
   if (entryData.isSplit && splits && splits.length > 0) {
-    const splitPriceSum = splits.reduce((sum, split) => sum + split.totalPrice, 0);
+    const otherSplits = splits.filter((split) => split.employeeId !== payload.employeeId);
+    const splitPriceSum = otherSplits.reduce((sum, split) => sum + split.totalPrice, 0);
     mainEmployeePrice -= splitPriceSum;
   }
   const mainEarnings = (mainEmployeePrice * mainRate) / 100;
@@ -361,15 +363,16 @@ const getAllSalonEntries = async (
 
     if (entry.employeeId === userId) {
       rowLoggedInUserTips = entry.tips || 0;
-      rowLoggedInUserTotalPrice = entry.totalPrice;
+      rowLoggedInUserTotalPrice = entry.totalPrice - (entry.addHair || 0);
       rowLoggedInUserCommEarnings = entry.commissionEarnings || 0;
 
       if (entry.isSplit && entry.splits && entry.splits.length > 0) {
-        const splitTipsSum = entry.splits.reduce(
+        const otherSplits = entry.splits.filter((s: SalonEntryMetaRow['splits'][number]) => s.employeeId !== userId);
+        const splitTipsSum = otherSplits.reduce(
           (sum: number, split: SalonEntryMetaRow['splits'][number]) => sum + (split.tips || 0),
           0
         );
-        const splitPriceSum = entry.splits.reduce(
+        const splitPriceSum = otherSplits.reduce(
           (sum: number, split: SalonEntryMetaRow['splits'][number]) => sum + split.totalPrice,
           0
         );
@@ -538,10 +541,11 @@ const updateSalonEntry = async (
     }
 
     // Calculate main employee share
-    const finalSplits: Array<{ totalPrice: number }> =
+    const finalSplits: Array<any> =
       splits !== undefined ? splits || [] : existingEntry.splits;
-    const splitPriceSum = finalSplits.reduce(
-      (sum: number, split: { totalPrice: number }) => sum + split.totalPrice,
+    const otherFinalSplits = finalSplits.filter(s => s.employeeId !== empId);
+    const splitPriceSum = otherFinalSplits.reduce(
+      (sum: number, split: any) => sum + split.totalPrice,
       0
     );
     const mainEmployeePrice = (actualPrice ?? 0) - splitPriceSum;

@@ -58,88 +58,111 @@ function buildUtcDayEnd(dateString: string) {
 }
 
 const getAllPayroll = async (filters: IPayrollFilterParams) => {
-  const andConditions: Prisma.SalonEntryWhereInput[] = [];
+  const userConditions: Prisma.UserWhereInput[] = [
+    { role: { in: ['EMPLOYEE', 'MANAGER'] } }
+  ];
 
-  // Robust date filtering for inclusive ranges
-  if (filters.startDate) {
-    const start = new Date(`${filters.startDate}T00:00:00.000Z`);
-    if (!isNaN(start.getTime())) {
-      andConditions.push({ createdAt: { gte: start } });
-    }
-  }
-
-  if (filters.endDate) {
-    const end = new Date(`${filters.endDate}T23:59:59.999Z`);
-    if (!isNaN(end.getTime())) {
-      andConditions.push({ createdAt: { lte: end } });
-    }
-  }
-
-  if (filters.salonId) {
-    andConditions.push({ salonId: filters.salonId });
-  }
-
-  // Search by service name
   if (filters.searchTerm) {
-    const matchingServices = await prisma.service.findMany({
-      where: { name: { contains: filters.searchTerm, mode: 'insensitive' } },
-      select: { id: true }
+    userConditions.push({
+      fullName: { contains: filters.searchTerm, mode: 'insensitive' }
     });
-    const serviceIds = matchingServices.map((s) => s.id);
-    andConditions.push({ serviceId: { in: serviceIds } });
   }
 
-  const whereConditions: Prisma.SalonEntryWhereInput =
-    andConditions.length > 0 ? { AND: andConditions } : {};
+  if (filters.employeeId) {
+    userConditions.push({ id: filters.employeeId });
+  }
 
-  // Find all matching entries with relations
-  const matchingEntries = await prisma.salonEntry.findMany({
-    where: whereConditions,
+  const users = await prisma.user.findMany({
+    where: { AND: userConditions },
     include: {
-      service: true,
+      commissionRate: true,
       salon: true
     }
   });
 
-  // Group and calculate (RESTORED AGGREGATION LOGIC)
-  const payrollMap: Record<
-    string,
-    {
-      serviceId: string;
-      serviceName: string;
-      salonId: string;
-      salonName: string;
-      totalOccurrences: number;
-      totalIncome: number;
-      totalTips: number;
+  const entryFilter: Prisma.SalonEntryWhereInput = {
+    status: 'APPROVED'
+  };
+
+  if (filters.startDate || filters.endDate) {
+    entryFilter.createdAt = {};
+    if (filters.startDate) {
+      entryFilter.createdAt.gte = new Date(`${filters.startDate}T00:00:00.000Z`);
     }
-  > = {};
-
-  matchingEntries.forEach((entry) => {
-    const key = `${entry.serviceId}_${entry.salonId}`;
-    if (!payrollMap[key]) {
-      payrollMap[key] = {
-        serviceId: entry.serviceId,
-        serviceName: entry.service?.name || 'Unknown Service',
-        salonId: entry.salonId,
-        salonName: entry.salon?.name || 'Unknown Salon',
-        totalOccurrences: 0,
-        totalIncome: 0,
-        totalTips: 0
-      };
+    if (filters.endDate) {
+      entryFilter.createdAt.lte = new Date(`${filters.endDate}T23:59:59.999Z`);
     }
+  }
 
-    const netPrice = entry.totalPrice - (entry.addHair || 0);
-
-    payrollMap[key].totalOccurrences += 1;
-    payrollMap[key].totalIncome += netPrice;
-    payrollMap[key].totalTips += entry.tips || 0;
+  // Fetch all APPROVED SalonEntries within the date range
+  const entries = await prisma.salonEntry.findMany({
+    where: entryFilter,
+    include: {
+      splits: true
+    }
   });
 
-  // Convert map to array and sort by highest income
-  const formattedData = Object.values(payrollMap).sort((a, b) => b.totalIncome - a.totalIncome);
+  const payrollData = users.map((user) => {
+    let totalOccurrences = 0;
+    let serviceCharge = 0;
+    let totalTips = 0;
 
-  return formattedData;
+    // Calculate metrics from entries
+    entries.forEach(entry => {
+      let isParticipant = false;
+
+      if (entry.employeeId === user.id) {
+        isParticipant = true;
+        
+        let ownServiceCharge = entry.totalPrice - (entry.addHair || 0);
+        let ownTips = entry.tips || 0;
+
+        if (entry.isSplit && entry.splits) {
+           // Only subtract splits belonging to OTHER employees
+           const otherSplits = entry.splits.filter(s => s.employeeId !== user.id);
+           const splitServiceSum = otherSplits.reduce((sum, s) => sum + s.totalPrice, 0);
+           const splitTipsSum = otherSplits.reduce((sum, s) => sum + (s.tips || 0), 0);
+           
+           ownServiceCharge -= splitServiceSum;
+           ownTips -= splitTipsSum;
+        }
+        
+        serviceCharge += ownServiceCharge;
+        totalTips += ownTips;
+      } else if (entry.isSplit && entry.splits) {
+        const userSplit = entry.splits.find(s => s.employeeId === user.id);
+        if (userSplit) {
+          isParticipant = true;
+          serviceCharge += userSplit.totalPrice;
+          totalTips += (userSplit.tips || 0);
+        }
+      }
+
+      if (isParticipant) {
+        totalOccurrences += 1;
+      }
+    });
+
+    const commissionRate = user.commissionRate?.rate || 0;
+    const commissionEarnings = serviceCharge * (commissionRate / 100);
+    const earnings = commissionEarnings + totalTips;
+
+    return {
+      employeeId: user.id,
+      employeeName: user.fullName,
+      salonName: user.salon?.name || 'N/A',
+      totalOccurrences,
+      commissionRate,
+      serviceCharge,
+      commissionEarnings,
+      totalTips,
+      earnings
+    };
+  });
+
+  // Filter out employees with no occurrences if you want, or show everyone.
+  // The instructions said "show all employee and manager with there details". So we show all.
+  return payrollData.sort((a, b) => b.earnings - a.earnings);
 };
 
 export const PayrollService = {

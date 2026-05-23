@@ -97,18 +97,29 @@ type SalonEntryMetaRow = Pick<
   >;
 };
 
-const formatSalonEntry = (entry: SalonEntryWithRelations, userId: string) => {
+const formatSalonEntry = (
+  entry: SalonEntryWithRelations,
+  userId: string,
+  role: string,
+  targetEmployeeId?: string
+) => {
   let loggedInUserTips = 0;
   let loggedInUserTotalPrice = 0;
+  let loggedInUserActualPrice = 0;
   let loggedInUserCommissionRate = 0;
   let commissionEarnings = 0;
+  let displayEmployeeName = entry.employee.fullName;
+  let displayEmployeeId = entry.employeeId;
+
+  const effectiveTargetId = targetEmployeeId || (role === 'EMPLOYEE' ? userId : entry.employeeId);
 
   // Use snapshot fields if available, otherwise fallback to dynamic calculation (legacy)
-  if (entry.employeeId === userId) {
+  if (entry.employeeId === effectiveTargetId) {
     loggedInUserTips = entry.tips || 0;
     loggedInUserTotalPrice = entry.totalPrice;
+    loggedInUserActualPrice = entry.actualPrice || 0;
 
-    // Fallback logic
+    // Fallback logic for splits
     if (entry.isSplit && entry.splits && entry.splits.length > 0) {
       const splitTipsSum = entry.splits.reduce(
         (sum: number, split: SplitEntrySummary) => sum + (split.tips || 0),
@@ -120,26 +131,34 @@ const formatSalonEntry = (entry: SalonEntryWithRelations, userId: string) => {
       );
       loggedInUserTips -= splitTipsSum;
       loggedInUserTotalPrice -= splitPriceSum;
+      loggedInUserActualPrice -= splitPriceSum;
     }
 
     loggedInUserCommissionRate = entry.commissionRate || entry.employee.commissionRate?.rate || 0;
     commissionEarnings =
       entry.commissionEarnings ??
       (loggedInUserCommissionRate > 0
-        ? (loggedInUserTotalPrice * loggedInUserCommissionRate) / 100
+        ? (loggedInUserActualPrice * loggedInUserCommissionRate) / 100
         : 0);
+
+    displayEmployeeName = entry.employee.fullName;
+    displayEmployeeId = entry.employeeId;
   } else if (entry.isSplit && entry.splits) {
-    const userSplit = entry.splits.find((s: SplitEntrySummary) => s.employeeId === userId);
+    const userSplit = entry.splits.find((s: SplitEntrySummary) => s.employeeId === effectiveTargetId);
     if (userSplit) {
       loggedInUserTips = userSplit.tips || 0;
       loggedInUserTotalPrice = userSplit.totalPrice;
+      loggedInUserActualPrice = userSplit.totalPrice; // Split shares are based on actual price
       loggedInUserCommissionRate =
         userSplit.commissionRate || userSplit.employee.commissionRate?.rate || 0;
       commissionEarnings =
         userSplit.commissionEarnings ??
         (loggedInUserCommissionRate > 0
-          ? (loggedInUserTotalPrice * loggedInUserCommissionRate) / 100
+          ? (userSplit.totalPrice * loggedInUserCommissionRate) / 100
           : 0);
+
+      displayEmployeeName = userSplit.employee.fullName;
+      displayEmployeeId = userSplit.employeeId;
     }
   }
 
@@ -150,35 +169,40 @@ const formatSalonEntry = (entry: SalonEntryWithRelations, userId: string) => {
     serviceName: entry.service.name,
     salonId: entry.salonId,
     salonName: entry.salon.name,
-    employeeId: entry.employeeId,
-    employeeName: entry.employee.fullName,
+    employeeId: displayEmployeeId,
+    employeeName: displayEmployeeName,
     status: entry.status,
     statusComment: entry.statusComment,
     approvedById: entry.approvedById,
     approvedByName: entry.approvedBy?.fullName || null,
     createdAt: entry.createdAt,
-    totalPrice: entry.totalPrice,
-    actualPrice: entry.actualPrice || 0,
-    tips: entry.tips || 0,
-    addHair: entry.addHair || 0,
+    totalPrice: role === 'EMPLOYEE' ? 0 : entry.totalPrice,
+    actualPrice: loggedInUserActualPrice, // Return the share as the main actualPrice
+    tips: loggedInUserTips, // Return the share as the main tips
+    addHair: role === 'EMPLOYEE' ? 0 : entry.addHair || 0,
     notes: entry.notes || null,
-    loggedInUserTotalPrice,
+    commissionRate: loggedInUserCommissionRate, // Return the share rate
+    loggedInUserTotalPrice: role === 'EMPLOYEE' ? 0 : loggedInUserTotalPrice,
+    loggedInUserActualPrice,
     loggedInUserTips,
     loggedInUserCommissionRate,
     commissionEarnings,
     isSplit: entry.isSplit,
-    splits: entry.splits
-      ? entry.splits.map((s: SplitEntrySummary) => ({
-          employeeId: s.employeeId,
-          employeeName: s.employee.fullName,
-          totalPrice: s.totalPrice,
-          tips: s.tips || 0,
-          commissionRate: s.commissionRate || s.employee.commissionRate?.rate || 0,
-          commissionEarnings:
-            s.commissionEarnings ||
-            ((s.commissionRate || s.employee.commissionRate?.rate || 0) * s.totalPrice) / 100
-        }))
-      : []
+    splits:
+      role === 'EMPLOYEE'
+        ? []
+        : entry.splits
+          ? entry.splits.map((s: SplitEntrySummary) => ({
+              employeeId: s.employeeId,
+              employeeName: s.employee.fullName,
+              totalPrice: s.totalPrice,
+              tips: s.tips || 0,
+              commissionRate: s.commissionRate || s.employee.commissionRate?.rate || 0,
+              commissionEarnings:
+                s.commissionEarnings ||
+                ((s.commissionRate || s.employee.commissionRate?.rate || 0) * s.totalPrice) / 100
+            }))
+          : []
   };
 };
 
@@ -342,6 +366,8 @@ const getAllSalonEntries = async (
   let loggedInUserTipsMeta = 0;
   let loggedInUserCommissionEarnings = 0;
 
+  const targetIdForMeta = filters.employeeId || (role === 'EMPLOYEE' ? userId : undefined);
+
   allMatchingEntries.forEach((entry: SalonEntryMetaRow) => {
     totalPrices += entry.totalPrice;
     totalTips += entry.tips || 0;
@@ -355,45 +381,47 @@ const getAllSalonEntries = async (
     }
     totalCommissionEarnings += entryTotalCommission;
 
-    let rowLoggedInUserTips = 0;
-    let rowLoggedInUserTotalPrice = 0;
-    let rowLoggedInUserCommEarnings = 0;
+    if (targetIdForMeta) {
+      let rowLoggedInUserTips = 0;
+      let rowLoggedInUserActualPriceShare = 0;
+      let rowLoggedInUserCommEarnings = 0;
 
-    if (entry.employeeId === userId) {
-      rowLoggedInUserTips = entry.tips || 0;
-      rowLoggedInUserTotalPrice = entry.totalPrice;
-      rowLoggedInUserCommEarnings = entry.commissionEarnings || 0;
+      if (entry.employeeId === targetIdForMeta) {
+        rowLoggedInUserTips = entry.tips || 0;
+        rowLoggedInUserActualPriceShare = entry.actualPrice || 0;
+        rowLoggedInUserCommEarnings = entry.commissionEarnings || 0;
 
-      if (entry.isSplit && entry.splits && entry.splits.length > 0) {
-        const splitTipsSum = entry.splits.reduce(
-          (sum: number, split: SalonEntryMetaRow['splits'][number]) => sum + (split.tips || 0),
-          0
+        if (entry.isSplit && entry.splits && entry.splits.length > 0) {
+          const splitTipsSum = entry.splits.reduce(
+            (sum: number, split: SalonEntryMetaRow['splits'][number]) => sum + (split.tips || 0),
+            0
+          );
+          const splitPriceSum = entry.splits.reduce(
+            (sum: number, split: SalonEntryMetaRow['splits'][number]) => sum + split.totalPrice,
+            0
+          );
+          rowLoggedInUserTips -= splitTipsSum;
+          rowLoggedInUserActualPriceShare -= splitPriceSum;
+        }
+      } else if (entry.isSplit && entry.splits) {
+        const userSplit = entry.splits.find(
+          (s: SalonEntryMetaRow['splits'][number]) => s.employeeId === targetIdForMeta
         );
-        const splitPriceSum = entry.splits.reduce(
-          (sum: number, split: SalonEntryMetaRow['splits'][number]) => sum + split.totalPrice,
-          0
-        );
-        rowLoggedInUserTips -= splitTipsSum;
-        rowLoggedInUserTotalPrice -= splitPriceSum;
+        if (userSplit) {
+          rowLoggedInUserTips = userSplit.tips || 0;
+          rowLoggedInUserActualPriceShare = userSplit.totalPrice;
+          rowLoggedInUserCommEarnings = userSplit.commissionEarnings || 0;
+        }
       }
-    } else if (entry.isSplit && entry.splits) {
-      const userSplit = entry.splits.find(
-        (s: SalonEntryMetaRow['splits'][number]) => s.employeeId === userId
-      );
-      if (userSplit) {
-        rowLoggedInUserTips = userSplit.tips || 0;
-        rowLoggedInUserTotalPrice = userSplit.totalPrice;
-        rowLoggedInUserCommEarnings = userSplit.commissionEarnings || 0;
-      }
+
+      loggedInUserPrices += rowLoggedInUserActualPriceShare;
+      loggedInUserTipsMeta += rowLoggedInUserTips;
+      loggedInUserCommissionEarnings += rowLoggedInUserCommEarnings;
     }
-
-    loggedInUserPrices += rowLoggedInUserTotalPrice;
-    loggedInUserTipsMeta += rowLoggedInUserTips;
-    loggedInUserCommissionEarnings += rowLoggedInUserCommEarnings;
   });
 
   const formattedData = result.map((entry: SalonEntryWithRelations) =>
-    formatSalonEntry(entry, userId)
+    formatSalonEntry(entry, userId, role, filters.employeeId)
   );
 
   return {
@@ -415,7 +443,8 @@ const getAllSalonEntries = async (
 const changeStatus = async (
   id: string,
   payload: { status: 'APPROVED' | 'REJECTED'; statusComment?: string },
-  approvedById: string
+  approvedById: string,
+  role: string
 ) => {
   const entry = await prisma.salonEntry.findUnique({ where: { id } });
 
@@ -433,7 +462,7 @@ const changeStatus = async (
     include: salonEntryInclude
   });
 
-  return formatSalonEntry(updatedEntry as SalonEntryWithRelations, entry.employeeId);
+  return formatSalonEntry(updatedEntry as SalonEntryWithRelations, approvedById, role);
 };
 
 const getSingleSalonEntry = async (id: string, userId: string, role: string) => {
@@ -462,7 +491,7 @@ const getSingleSalonEntry = async (id: string, userId: string, role: string) => 
     }
   }
 
-  return formatSalonEntry(entry as SalonEntryWithRelations, userId);
+  return formatSalonEntry(entry as SalonEntryWithRelations, userId, role);
 };
 
 const updateSalonEntry = async (
@@ -562,7 +591,7 @@ const updateSalonEntry = async (
     return salonEntry;
   });
 
-  return formatSalonEntry(result as SalonEntryWithRelations, userId);
+  return formatSalonEntry(result as SalonEntryWithRelations, userId, userRole);
 };
 
 const deleteSalonEntry = async (id: string) => {

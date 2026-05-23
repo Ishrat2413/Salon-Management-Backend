@@ -19,7 +19,12 @@ const authRateLimiter = rateLimit({
   }
 });
 
-router.post('/register', authRateLimiter, validateRequest(AuthValidation.register), AuthController.register);
+router.post(
+  '/register',
+  authRateLimiter,
+  validateRequest(AuthValidation.register),
+  AuthController.register
+);
 router.post('/login', authRateLimiter, validateRequest(AuthValidation.login), AuthController.login);
 
 router.post(

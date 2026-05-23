@@ -7,9 +7,9 @@ const getAllPayroll: RequestHandler = catchAsync(async (req, res) => {
   const searchTerm = req.query.searchTerm as string | undefined;
   const startDate = req.query.startDate as string | undefined;
   const endDate = req.query.endDate as string | undefined;
-  const salonId = req.query.salonId as string | undefined;
+  const employeeId = req.query.employeeId as string | undefined;
 
-  const result = await PayrollService.getAllPayroll({ searchTerm, startDate, endDate, salonId });
+  const result = await PayrollService.getAllPayroll({ searchTerm, startDate, endDate, employeeId });
 
   sendResponse(res, {
     statusCode: 200,

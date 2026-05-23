@@ -84,7 +84,8 @@ model SalonEntry {
   statusComment String?
   approvedById  String?
   approvedBy    User?            @relation("ApprovedBy", fields: [approvedById], references: [id])
-
+  editedById    String?
+  editedBy      User?            @relation("EditedBy", fields: [editedById], references: [id])
   createdAt     DateTime         @default(now())
   updatedAt     DateTime         @updatedAt
 
@@ -113,8 +114,6 @@ enum Role {
 
 enum UserStatus {
   PENDING
-  editedById    String?
-  editedBy      User?            @relation("EditedBy", fields: [editedById], references: [id])
   ACTIVE
   SUSPEND
   REJECTED

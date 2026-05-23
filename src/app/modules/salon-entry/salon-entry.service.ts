@@ -258,14 +258,6 @@ const getAllSalonEntries = async (
     andConditions.push({
       OR: [{ employeeId: userId }, { splits: { some: { employeeId: userId } } }]
     });
-  } else if (role === 'MANAGER') {
-    const managerUser = await prisma.user.findUnique({ where: { id: userId } });
-    if (managerUser?.salonId) {
-      andConditions.push({ salonId: managerUser.salonId });
-    } else {
-      // If manager has no salon assigned, they see nothing
-      andConditions.push({ id: 'none' });
-    }
   }
 
   // 2. Filter Conditions

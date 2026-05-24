@@ -182,7 +182,7 @@ const formatSalonEntry = (
     addHair: role === 'EMPLOYEE' ? 0 : entry.addHair || 0,
     notes: entry.notes || null,
     commissionRate: loggedInUserCommissionRate,
-    loggedInUserTotalPrice: role === 'EMPLOYEE' ? 0 : loggedInUserTotalPrice,
+    loggedInUserTotalPrice,
     loggedInUserActualPrice,
     loggedInUserTips,
     loggedInUserCommissionRate,

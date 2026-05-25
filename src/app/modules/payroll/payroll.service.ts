@@ -106,6 +106,7 @@ const getAllPayroll = async (filters: IPayrollFilterParams) => {
     let totalOccurrences = 0;
     let serviceCharge = 0;
     let totalTips = 0;
+    let commissionEarnings = 0;
 
     // Calculate metrics from entries
     entries.forEach(entry => {
@@ -129,12 +130,15 @@ const getAllPayroll = async (filters: IPayrollFilterParams) => {
         
         serviceCharge += ownServiceCharge;
         totalTips += ownTips;
+        commissionEarnings += entry.commissionEarnings || 0;
+
       } else if (entry.isSplit && entry.splits) {
         const userSplit = entry.splits.find(s => s.employeeId === user.id);
         if (userSplit) {
           isParticipant = true;
           serviceCharge += userSplit.totalPrice;
           totalTips += (userSplit.tips || 0);
+          commissionEarnings += userSplit.commissionEarnings || 0;
         }
       }
 
@@ -143,8 +147,12 @@ const getAllPayroll = async (filters: IPayrollFilterParams) => {
       }
     });
 
-    const commissionRate = user.commissionRate?.rate || 0;
-    const commissionEarnings = serviceCharge * (commissionRate / 100);
+    // Calculate effective commission rate based on historical earnings
+    let effectiveCommissionRate = user.commissionRate?.rate || 0;
+    if (serviceCharge > 0) {
+      effectiveCommissionRate = Math.round((commissionEarnings / serviceCharge) * 100);
+    }
+
     const earnings = commissionEarnings + totalTips;
 
     return {
@@ -152,7 +160,7 @@ const getAllPayroll = async (filters: IPayrollFilterParams) => {
       employeeName: user.fullName,
       salonName: user.salon?.name || 'N/A',
       totalOccurrences,
-      commissionRate,
+      commissionRate: effectiveCommissionRate,
       serviceCharge,
       commissionEarnings,
       totalTips,

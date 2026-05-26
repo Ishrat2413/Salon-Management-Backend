@@ -322,7 +322,8 @@ const getAllSalonEntries = async (
       OR: [
         { notes: { contains: filters.searchTerm, mode: 'insensitive' } },
         { service: { name: { contains: filters.searchTerm, mode: 'insensitive' } } },
-        { salon: { name: { contains: filters.searchTerm, mode: 'insensitive' } } }
+        { salon: { name: { contains: filters.searchTerm, mode: 'insensitive' } } },
+        { employee: { fullName: { contains: filters.searchTerm, mode: 'insensitive' } } }
       ]
     });
   }

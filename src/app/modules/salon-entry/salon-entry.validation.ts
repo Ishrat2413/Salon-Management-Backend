@@ -6,17 +6,17 @@ const createSalonEntry = z.object({
     salonId: z.string().uuid({ message: 'Valid salon ID is required.' }),
     serviceId: z.string().uuid({ message: 'Valid service ID is required.' }),
     clientName: z.string().optional(),
-    totalPrice: z.number().int().nonnegative({ message: 'Total price must be a non-negative integer.' }),
-    actualPrice: z.number().int().nonnegative().optional(),
-    tips: z.number().int().nonnegative().optional(),
-    addHair: z.number().int().nonnegative().optional(),
+    totalPrice: z.number().nonnegative({ message: 'Total price must be a non-negative number.' }),
+    actualPrice: z.number().nonnegative().optional(),
+    tips: z.number().nonnegative().optional(),
+    addHair: z.number().nonnegative().optional(),
     notes: z.string().optional(),
     isSplit: z.boolean().optional(),
     splits: z.array(
       z.object({
         employeeId: z.string().uuid({ message: 'Valid split employee ID is required.' }),
-        totalPrice: z.number().int().nonnegative(),
-        tips: z.number().int().nonnegative().optional()
+        totalPrice: z.number().nonnegative(),
+        tips: z.number().nonnegative().optional()
       })
     ).optional()
   }).strict()
@@ -28,10 +28,10 @@ const updateSalonEntry = z.object({
     salonId: z.string().uuid({ message: 'Valid salon ID is required.' }).optional(),
     serviceId: z.string().uuid({ message: 'Valid service ID is required.' }).optional(),
     clientName: z.string().optional(),
-    totalPrice: z.number().int().nonnegative({ message: 'Total price must be a non-negative integer.' }).optional(),
-    actualPrice: z.number().int().nonnegative().optional(),
-    tips: z.number().int().nonnegative().optional(),
-    addHair: z.number().int().nonnegative().optional(),
+    totalPrice: z.number().nonnegative({ message: 'Total price must be a non-negative number.' }).optional(),
+    actualPrice: z.number().nonnegative().optional(),
+    tips: z.number().nonnegative().optional(),
+    addHair: z.number().nonnegative().optional(),
     notes: z.string().optional(),
     status: z.enum(['PENDING', 'APPROVED', 'REJECTED']).optional(),
     statusComment: z.string().optional(),
@@ -39,8 +39,8 @@ const updateSalonEntry = z.object({
     splits: z.array(
       z.object({
         employeeId: z.string().uuid({ message: 'Valid split employee ID is required.' }),
-        totalPrice: z.number().int().nonnegative(),
-        tips: z.number().int().nonnegative().optional()
+        totalPrice: z.number().nonnegative(),
+        tips: z.number().nonnegative().optional()
       })
     ).optional()
   }).strict()

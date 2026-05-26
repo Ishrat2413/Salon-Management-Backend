@@ -120,7 +120,9 @@ const formatSalonEntry = (
 
     // Fallback logic for splits
     if (entry.isSplit && entry.splits && entry.splits.length > 0) {
-      const otherSplits = entry.splits.filter((s: SplitEntrySummary) => s.employeeId !== effectiveTargetId);
+      const otherSplits = entry.splits.filter(
+        (s: SplitEntrySummary) => s.employeeId !== effectiveTargetId
+      );
       const splitTipsSum = otherSplits.reduce(
         (sum: number, split: SplitEntrySummary) => sum + (split.tips || 0),
         0
@@ -144,7 +146,9 @@ const formatSalonEntry = (
     displayEmployeeName = entry.employee.fullName;
     displayEmployeeId = entry.employeeId;
   } else if (entry.isSplit && entry.splits) {
-    const userSplit = entry.splits.find((s: SplitEntrySummary) => s.employeeId === effectiveTargetId);
+    const userSplit = entry.splits.find(
+      (s: SplitEntrySummary) => s.employeeId === effectiveTargetId
+    );
     if (userSplit) {
       loggedInUserTips = userSplit.tips || 0;
       loggedInUserTotalPrice = userSplit.totalPrice;
@@ -177,8 +181,8 @@ const formatSalonEntry = (
     approvedByName: entry.approvedBy?.fullName || null,
     createdAt: entry.createdAt,
     totalPrice: role === 'EMPLOYEE' ? 0 : entry.totalPrice,
-    actualPrice: role === 'EMPLOYEE' ? loggedInUserActualPrice : (entry.actualPrice || 0),
-    tips: role === 'EMPLOYEE' ? loggedInUserTips : (entry.tips || 0),
+    actualPrice: role === 'EMPLOYEE' ? loggedInUserActualPrice : entry.actualPrice || 0,
+    tips: role === 'EMPLOYEE' ? loggedInUserTips : entry.tips || 0,
     addHair: role === 'EMPLOYEE' ? 0 : entry.addHair || 0,
     notes: entry.notes || null,
     commissionRate: loggedInUserCommissionRate,
@@ -207,6 +211,7 @@ const formatSalonEntry = (
 };
 
 const createSalonEntry = async (payload: ISalonEntryCreatePayload) => {
+  console.log('DEBUG: createSalonEntry payload:', JSON.stringify(payload, null, 2));
   const { splits, ...entryData } = payload;
 
   const mainEmployee = await prisma.user.findUnique({
@@ -216,7 +221,9 @@ const createSalonEntry = async (payload: ISalonEntryCreatePayload) => {
 
   const mainRate = mainEmployee?.commissionRate?.rate || 0;
   const hair = entryData.addHair || 0;
-  const actualPrice = entryData.actualPrice ?? entryData.totalPrice - hair;
+  const actualPrice = entryData.actualPrice ?? Number(entryData.totalPrice) - hair;
+
+  console.log('DEBUG: calculated values:', { mainRate, hair, actualPrice });
 
   // Calculate main employee's share if splitting
   let mainEmployeePrice = actualPrice;
@@ -226,6 +233,8 @@ const createSalonEntry = async (payload: ISalonEntryCreatePayload) => {
     mainEmployeePrice -= splitPriceSum;
   }
   const mainEarnings = (mainEmployeePrice * mainRate) / 100;
+
+  console.log('DEBUG: mainEarnings:', mainEarnings);
 
   const result = await prisma.$transaction(async (tx: Prisma.TransactionClient) => {
     // We need to fetch rates for split employees too
@@ -247,6 +256,8 @@ const createSalonEntry = async (payload: ISalonEntryCreatePayload) => {
       }
     }
 
+    console.log('DEBUG: final splitData to save:', JSON.stringify(splitData, null, 2));
+
     const salonEntry = await tx.salonEntry.create({
       data: {
         ...entryData,
@@ -260,6 +271,7 @@ const createSalonEntry = async (payload: ISalonEntryCreatePayload) => {
       }
     });
 
+    console.log('DEBUG: salonEntry created in DB:', JSON.stringify(salonEntry, null, 2));
     return salonEntry;
   });
 

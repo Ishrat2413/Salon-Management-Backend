@@ -1,6 +1,7 @@
 import { Router } from 'express';
 
 import { AuthRoutes } from '../modules/auth/auth.routes';
+import { DashboardRoutes } from '../modules/dashboard/dashboard.routes';
 import { PayrollRoutes } from '../modules/payroll/payroll.routes';
 import { SalonRoutes } from '../modules/salon/salon.routes';
 import { SalonEntryRoutes } from '../modules/salon-entry/salon-entry.routes';
@@ -17,6 +18,10 @@ const moduleRoutes = [
   {
     path: '/users',
     route: UserRoutes
+  },
+  {
+    path: '/dashboard',
+    route: DashboardRoutes
   },
   {
     path: '/salons',

@@ -55,7 +55,7 @@ model CommissionRate {
   id        String   @id @default(uuid())
   userId    String   @unique
   user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-  rate      Int
+  rate      Float
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
@@ -71,11 +71,11 @@ model SalonEntry {
   employeeId    String
   employee      User             @relation("MainEmployee", fields: [employeeId], references: [id])
   clientName    String?
-  totalPrice    Int
-  actualPrice   Int              @default(0)
-  tips          Int?             @default(0)
-  addHair       Int?             @default(0)
-  commissionRate Int?            @default(0)
+  totalPrice    Float
+  actualPrice   Float            @default(0)
+  tips          Float?           @default(0)
+  addHair       Float?           @default(0)
+  commissionRate Float?          @default(0)
   commissionEarnings Float?      @default(0)
   notes         String?
   isSplit       Boolean          @default(false)
@@ -98,9 +98,9 @@ model SplitEntry {
   salonEntry   SalonEntry @relation(fields: [salonEntryId], references: [id], onDelete: Cascade)
   employeeId   String
   employee     User       @relation("SplitEmployee", fields: [employeeId], references: [id])
-  totalPrice   Int
-  tips         Int?       @default(0)
-  commissionRate Int?      @default(0)
+  totalPrice   Float
+  tips         Float?     @default(0)
+  commissionRate Float?    @default(0)
   commissionEarnings Float?    @default(0)
 
   @@map("split_entries")

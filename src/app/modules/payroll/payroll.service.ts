@@ -57,6 +57,8 @@ function buildUtcDayEnd(dateString: string) {
   return new Date(Date.UTC(year, month - 1, day, 23, 59, 59, 999));
 }
 
+import { SalonEntryService } from '../salon-entry/salon-entry.service';
+
 const getAllPayroll = async (filters: IPayrollFilterParams) => {
   const userConditions: Prisma.UserWhereInput[] = [
     { role: { in: ['EMPLOYEE', 'MANAGER'] } }
@@ -173,6 +175,22 @@ const getAllPayroll = async (filters: IPayrollFilterParams) => {
   return payrollData.sort((a, b) => b.earnings - a.earnings);
 };
 
+const getEmployeePayrollEntries = async (employeeId: string, filters: IPayrollFilterParams) => {
+  return SalonEntryService.getAllSalonEntries(
+    employeeId,
+    'EMPLOYEE', 
+    {
+      startDate: filters.startDate,
+      endDate: filters.endDate,
+      status: 'APPROVED',
+      employeeId: employeeId
+    },
+    1,
+    1000
+  );
+};
+
 export const PayrollService = {
-  getAllPayroll
+  getAllPayroll,
+  getEmployeePayrollEntries
 };

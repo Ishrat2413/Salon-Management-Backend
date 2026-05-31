@@ -10,4 +10,10 @@ router.get(
   PayrollController.getAllPayroll
 );
 
+router.get(
+  '/employee/:employeeId/entries',
+  auth('ADMIN'),
+  PayrollController.getEmployeePayrollEntries
+);
+
 export const PayrollRoutes = router;

@@ -19,6 +19,23 @@ const getAllPayroll: RequestHandler = catchAsync(async (req, res) => {
   });
 });
 
+const getEmployeePayrollEntries: RequestHandler = catchAsync(async (req, res) => {
+  const employeeId = req.params.employeeId as string;
+  const startDate = req.query.startDate as string | undefined;
+  const endDate = req.query.endDate as string | undefined;
+
+  const result = await PayrollService.getEmployeePayrollEntries(employeeId, { startDate, endDate });
+
+  sendResponse(res, {
+    statusCode: 200,
+    success: true,
+    message: 'Employee payroll entries retrieved successfully.',
+    data: result.data,
+    meta: result.meta
+  });
+});
+
 export const PayrollController = {
-  getAllPayroll
+  getAllPayroll,
+  getEmployeePayrollEntries
 };

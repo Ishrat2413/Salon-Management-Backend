@@ -1,6 +1,7 @@
 import { Prisma } from '@prisma/client';
 import AppError from '../../errors/AppError';
 import prisma from '../../utils/prisma';
+import { fromZonedTime } from 'date-fns-tz';
 import type {
   ISalonEntryCreatePayload,
   ISalonEntryFilterParams,
@@ -300,20 +301,16 @@ const getAllSalonEntries = async (
 
   // 2. Filter Conditions
   if (filters.startDate && filters.endDate) {
-    const end = new Date(filters.endDate);
-    end.setUTCHours(23, 59, 59, 999);
     andConditions.push({
       createdAt: {
-        gte: new Date(filters.startDate),
-        lte: end
+        gte: fromZonedTime(`${filters.startDate}T00:00:00`, 'America/Chicago'),
+        lte: fromZonedTime(`${filters.endDate}T23:59:59.999`, 'America/Chicago')
       }
     });
   } else if (filters.startDate) {
-    andConditions.push({ createdAt: { gte: new Date(filters.startDate) } });
+    andConditions.push({ createdAt: { gte: fromZonedTime(`${filters.startDate}T00:00:00`, 'America/Chicago') } });
   } else if (filters.endDate) {
-    const end = new Date(filters.endDate);
-    end.setUTCHours(23, 59, 59, 999);
-    andConditions.push({ createdAt: { lte: end } });
+    andConditions.push({ createdAt: { lte: fromZonedTime(`${filters.endDate}T23:59:59.999`, 'America/Chicago') } });
   }
 
   if (filters.employeeId) {

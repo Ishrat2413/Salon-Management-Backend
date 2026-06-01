@@ -58,6 +58,7 @@ function buildUtcDayEnd(dateString: string) {
 }
 
 import { SalonEntryService } from '../salon-entry/salon-entry.service';
+import { fromZonedTime } from 'date-fns-tz';
 
 const getAllPayroll = async (filters: IPayrollFilterParams) => {
   const userConditions: Prisma.UserWhereInput[] = [
@@ -89,10 +90,10 @@ const getAllPayroll = async (filters: IPayrollFilterParams) => {
   if (filters.startDate || filters.endDate) {
     entryFilter.createdAt = {};
     if (filters.startDate) {
-      entryFilter.createdAt.gte = new Date(`${filters.startDate}T00:00:00.000Z`);
+      entryFilter.createdAt.gte = fromZonedTime(`${filters.startDate}T00:00:00`, 'America/Chicago');
     }
     if (filters.endDate) {
-      entryFilter.createdAt.lte = new Date(`${filters.endDate}T23:59:59.999Z`);
+      entryFilter.createdAt.lte = fromZonedTime(`${filters.endDate}T23:59:59.999`, 'America/Chicago');
     }
   }
 

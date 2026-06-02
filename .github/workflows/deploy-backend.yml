@@ -6,8 +6,6 @@ on:
   push:
     branches:
       - main
-    paths:
-      - 'city-backend/**'
 
 # 2. WHAT SHOULD IT DO?
 jobs:

@@ -49,7 +49,7 @@ const updateSalonEntry = z.object({
 const changeStatus = z.object({
   body: z.object({
     status: z.enum(['APPROVED', 'REJECTED'], { message: 'Status must be APPROVED or REJECTED.' }),
-    statusComment: z.string().optional()
+    statusComment: z.string().min(1, { message: 'A comment is required when changing status.' })
   }).strict()
 });
 

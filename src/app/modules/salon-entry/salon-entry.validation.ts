@@ -5,12 +5,12 @@ const createSalonEntry = z.object({
     employeeId: z.string().uuid({ message: 'Valid employee ID is required.' }),
     salonId: z.string().uuid({ message: 'Valid salon ID is required.' }),
     serviceId: z.string().uuid({ message: 'Valid service ID is required.' }),
-    clientName: z.string().optional(),
+    clientName: z.string().min(1, { message: 'Client name is required.' }),
     totalPrice: z.number().nonnegative({ message: 'Total price must be a non-negative number.' }),
     actualPrice: z.number().nonnegative().optional(),
     tips: z.number().nonnegative().optional(),
     addHair: z.number().nonnegative().optional(),
-    notes: z.string().optional(),
+    notes: z.string().min(1, { message: 'Notes are required.' }),
     isSplit: z.boolean().optional(),
     splits: z.array(
       z.object({

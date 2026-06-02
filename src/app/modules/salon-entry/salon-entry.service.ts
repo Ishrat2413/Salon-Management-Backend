@@ -90,7 +90,7 @@ type SplitEntryCreatePayload = {
 };
 type SalonEntryMetaRow = Pick<
   SalonEntryWithRelations,
-  'employeeId' | 'totalPrice' | 'tips' | 'commissionEarnings' | 'isSplit' | 'addHair'
+  'employeeId' | 'totalPrice' | 'tips' | 'commissionEarnings' | 'isSplit' | 'addHair' | 'status'
 > & {
   splits: Array<
     Pick<SplitEntrySummary, 'employeeId' | 'totalPrice' | 'tips' | 'commissionEarnings'>
@@ -338,7 +338,11 @@ const getAllSalonEntries = async (
   }
 
   if (filters.status) {
-    andConditions.push({ status: filters.status });
+    if (typeof filters.status === 'string' && filters.status.includes(',')) {
+      andConditions.push({ status: { in: filters.status.split(',').map((s) => s.trim()) as any[] } });
+    } else {
+      andConditions.push({ status: filters.status as any });
+    }
   }
 
   const whereConditions: Prisma.SalonEntryWhereInput =
@@ -375,6 +379,9 @@ const getAllSalonEntries = async (
   const targetIdForMeta = filters.employeeId || (role === 'EMPLOYEE' ? userId : undefined);
 
   allMatchingEntries.forEach((entry: SalonEntryMetaRow) => {
+    // PROTECT MATH: Only APPROVED entries contribute to financial totals
+    if (entry.status !== 'APPROVED') return;
+
     totalPrices += entry.totalPrice;
     totalTips += entry.tips || 0;
 

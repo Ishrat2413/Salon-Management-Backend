@@ -77,6 +77,7 @@ model SalonEntry {
   addHair       Float?           @default(0)
   commissionRate Float?          @default(0)
   commissionEarnings Float?      @default(0)
+  splitPercentage Float?         @default(0)
   notes         String?
   isSplit       Boolean          @default(false)
   splits        SplitEntry[]
@@ -102,6 +103,7 @@ model SplitEntry {
   tips         Float?     @default(0)
   commissionRate Float?    @default(0)
   commissionEarnings Float?    @default(0)
+  splitPercentage Float?       @default(0)
 
   @@map("split_entries")
 }

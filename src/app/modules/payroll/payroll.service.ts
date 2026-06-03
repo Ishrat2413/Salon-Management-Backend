@@ -150,11 +150,8 @@ const getAllPayroll = async (filters: IPayrollFilterParams) => {
       }
     });
 
-    // Calculate effective commission rate based on historical earnings
-    let effectiveCommissionRate = user.commissionRate?.rate || 0;
-    if (serviceCharge > 0) {
-      effectiveCommissionRate = Math.round((commissionEarnings / serviceCharge) * 100);
-    }
+    // Calculate commission based on stored rate
+    const currentCommissionRate = user.commissionRate?.rate || 0;
 
     const earnings = commissionEarnings + totalTips;
 
@@ -163,7 +160,7 @@ const getAllPayroll = async (filters: IPayrollFilterParams) => {
       employeeName: user.fullName,
       salonName: user.salon?.name || 'N/A',
       totalOccurrences,
-      commissionRate: effectiveCommissionRate,
+      commissionRate: currentCommissionRate,
       serviceCharge,
       commissionEarnings,
       totalTips,

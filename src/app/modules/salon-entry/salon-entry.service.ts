@@ -106,7 +106,6 @@ const formatSalonEntry = (
   role: string,
   targetEmployeeId?: string
 ) => {
-  console.log("DEBUG: Formatting entry:", entry.id, "Splits:", JSON.stringify(entry.splits, null, 2));
   let loggedInUserTips = 0;
   let loggedInUserTotalPrice = 0;
   let loggedInUserActualPrice = 0;
@@ -229,7 +228,6 @@ const formatSalonEntry = (
 };
 
 const createSalonEntry = async (payload: ISalonEntryCreatePayload) => {
-  console.log('DEBUG: createSalonEntry payload:', JSON.stringify(payload, null, 2));
   const { splits, ...entryData } = payload;
 
   const mainEmployee = await prisma.user.findUnique({
@@ -241,8 +239,6 @@ const createSalonEntry = async (payload: ISalonEntryCreatePayload) => {
   const hair = entryData.addHair || 0;
   const actualPrice = entryData.actualPrice ?? Number(entryData.totalPrice) - hair;
 
-  console.log('DEBUG: calculated values:', { mainRate, hair, actualPrice });
-
   // Calculate main employee's share if splitting
   let mainEmployeePrice = actualPrice;
   if (entryData.isSplit && splits && splits.length > 0) {
@@ -253,10 +249,11 @@ const createSalonEntry = async (payload: ISalonEntryCreatePayload) => {
   const mainEarnings = (mainEmployeePrice * mainRate) / 100;
 
   // Derive splitPercentage if not provided
-  const mainSplitPercentage =
-    Number((payload.splitPercentage ?? (actualPrice > 0 ? (mainEmployeePrice / actualPrice) * 100 : 100)).toFixed(2));
-
-  console.log('DEBUG: mainEarnings:', mainEarnings);
+  const mainSplitPercentage = Number(
+    (
+      payload.splitPercentage ?? (actualPrice > 0 ? (mainEmployeePrice / actualPrice) * 100 : 100)
+    ).toFixed(2)
+  );
 
   const result = await prisma.$transaction(async (tx: Prisma.TransactionClient) => {
     // We need to fetch rates for split employees too
@@ -269,8 +266,11 @@ const createSalonEntry = async (payload: ISalonEntryCreatePayload) => {
         });
         const rate = emp?.commissionRate?.rate || 0;
 
-        const derivedPercentage =
-          Number((split.splitPercentage ?? (actualPrice > 0 ? (split.totalPrice / actualPrice) * 100 : 0)).toFixed(2));
+        const derivedPercentage = Number(
+          (
+            split.splitPercentage ?? (actualPrice > 0 ? (split.totalPrice / actualPrice) * 100 : 0)
+          ).toFixed(2)
+        );
 
         splitData.push({
           employeeId: split.employeeId,
@@ -282,8 +282,6 @@ const createSalonEntry = async (payload: ISalonEntryCreatePayload) => {
         });
       }
     }
-
-    console.log('DEBUG: final splitData to save:', JSON.stringify(splitData, null, 2));
 
     const salonEntry = await tx.salonEntry.create({
       data: {
@@ -299,7 +297,6 @@ const createSalonEntry = async (payload: ISalonEntryCreatePayload) => {
       }
     });
 
-    console.log('DEBUG: salonEntry created in DB:', JSON.stringify(salonEntry, null, 2));
     return salonEntry;
   });
 
@@ -335,9 +332,13 @@ const getAllSalonEntries = async (
       }
     });
   } else if (filters.startDate) {
-    andConditions.push({ createdAt: { gte: fromZonedTime(`${filters.startDate}T00:00:00`, 'America/Chicago') } });
+    andConditions.push({
+      createdAt: { gte: fromZonedTime(`${filters.startDate}T00:00:00`, 'America/Chicago') }
+    });
   } else if (filters.endDate) {
-    andConditions.push({ createdAt: { lte: fromZonedTime(`${filters.endDate}T23:59:59.999`, 'America/Chicago') } });
+    andConditions.push({
+      createdAt: { lte: fromZonedTime(`${filters.endDate}T23:59:59.999`, 'America/Chicago') }
+    });
   }
 
   if (filters.employeeId) {
@@ -366,7 +367,9 @@ const getAllSalonEntries = async (
 
   if (filters.status) {
     if (typeof filters.status === 'string' && filters.status.includes(',')) {
-      andConditions.push({ status: { in: filters.status.split(',').map((s) => s.trim()) as any[] } });
+      andConditions.push({
+        status: { in: filters.status.split(',').map((s) => s.trim()) as any[] }
+      });
     } else {
       andConditions.push({ status: filters.status as any });
     }
@@ -591,7 +594,8 @@ const updateSalonEntry = async (
             commissionRate: rate,
             commissionEarnings: (split.totalPrice * rate) / 100,
             splitPercentage:
-              split.splitPercentage ?? (actualPrice && actualPrice > 0 ? (split.totalPrice / actualPrice) * 100 : 0)
+              split.splitPercentage ??
+              (actualPrice && actualPrice > 0 ? (split.totalPrice / actualPrice) * 100 : 0)
           });
         }
       }

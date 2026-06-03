@@ -10,13 +10,15 @@ const createSalonEntry = z.object({
     actualPrice: z.number().nonnegative().optional(),
     tips: z.number().nonnegative().optional(),
     addHair: z.number().nonnegative().optional(),
+    splitPercentage: z.number().nonnegative().optional(),
     notes: z.string().min(1, { message: 'Notes are required.' }),
     isSplit: z.boolean().optional(),
     splits: z.array(
       z.object({
         employeeId: z.string().uuid({ message: 'Valid split employee ID is required.' }),
         totalPrice: z.number().nonnegative(),
-        tips: z.number().nonnegative().optional()
+        tips: z.number().nonnegative().optional(),
+        splitPercentage: z.number().nonnegative().optional()
       })
     ).optional()
   }).strict()
@@ -32,6 +34,7 @@ const updateSalonEntry = z.object({
     actualPrice: z.number().nonnegative().optional(),
     tips: z.number().nonnegative().optional(),
     addHair: z.number().nonnegative().optional(),
+    splitPercentage: z.number().nonnegative().optional(),
     notes: z.string().optional(),
     status: z.enum(['PENDING', 'APPROVED', 'REJECTED']).optional(),
     statusComment: z.string().optional(),
@@ -40,7 +43,8 @@ const updateSalonEntry = z.object({
       z.object({
         employeeId: z.string().uuid({ message: 'Valid split employee ID is required.' }),
         totalPrice: z.number().nonnegative(),
-        tips: z.number().nonnegative().optional()
+        tips: z.number().nonnegative().optional(),
+        splitPercentage: z.number().nonnegative().optional()
       })
     ).optional()
   }).strict()
@@ -58,5 +62,3 @@ export const SalonEntryValidation = {
   updateSalonEntry,
   changeStatus
 };
-
-

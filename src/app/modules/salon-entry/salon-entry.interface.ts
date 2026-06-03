@@ -2,6 +2,7 @@ export interface ISplitEntryPayload {
   employeeId: string;
   totalPrice: number;
   tips?: number;
+  splitPercentage?: number;
 }
 
 export interface ISalonEntryCreatePayload {
@@ -13,6 +14,7 @@ export interface ISalonEntryCreatePayload {
   actualPrice?: number;
   tips?: number;
   addHair?: number;
+  splitPercentage?: number;
   notes?: string;
   isSplit?: boolean;
   splits?: ISplitEntryPayload[];
@@ -27,6 +29,7 @@ export interface ISalonEntryUpdatePayload {
   actualPrice?: number;
   tips?: number;
   addHair?: number;
+  splitPercentage?: number;
   notes?: string;
   status?: 'PENDING' | 'APPROVED' | 'REJECTED';
   statusComment?: string;

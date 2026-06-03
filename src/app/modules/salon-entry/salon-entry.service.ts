@@ -53,6 +53,7 @@ type SplitEntrySummary = {
   tips: number | null;
   commissionRate: number | null;
   commissionEarnings: number | null;
+  splitPercentage: number | null;
   employee: UserSummary;
 };
 
@@ -77,6 +78,7 @@ type SalonEntryWithRelations = {
   notes: string | null;
   commissionRate: number | null;
   commissionEarnings: number | null;
+  splitPercentage: number | null;
   isSplit: boolean;
   splits: SplitEntrySummary[];
 };
@@ -87,6 +89,7 @@ type SplitEntryCreatePayload = {
   tips: number;
   commissionRate: number;
   commissionEarnings: number;
+  splitPercentage: number;
 };
 type SalonEntryMetaRow = Pick<
   SalonEntryWithRelations,
@@ -108,6 +111,7 @@ const formatSalonEntry = (
   let loggedInUserActualPrice = 0;
   let loggedInUserCommissionRate = 0;
   let commissionEarnings = 0;
+  let loggedInUserSplitPercentage = 0;
   let displayEmployeeName = entry.employee.fullName;
   let displayEmployeeId = entry.employeeId;
 
@@ -144,6 +148,10 @@ const formatSalonEntry = (
         ? (loggedInUserActualPrice * loggedInUserCommissionRate) / 100
         : 0);
 
+    loggedInUserSplitPercentage =
+      entry.splitPercentage ??
+      (entry.actualPrice > 0 ? (loggedInUserActualPrice / entry.actualPrice) * 100 : 100);
+
     displayEmployeeName = entry.employee.fullName;
     displayEmployeeId = entry.employeeId;
   } else if (entry.isSplit && entry.splits) {
@@ -161,6 +169,10 @@ const formatSalonEntry = (
         (loggedInUserCommissionRate > 0
           ? (userSplit.totalPrice * loggedInUserCommissionRate) / 100
           : 0);
+
+      loggedInUserSplitPercentage =
+        userSplit.splitPercentage ??
+        (entry.actualPrice > 0 ? (userSplit.totalPrice / entry.actualPrice) * 100 : 0);
 
       displayEmployeeName = userSplit.employee.fullName;
       displayEmployeeId = userSplit.employeeId;
@@ -192,6 +204,7 @@ const formatSalonEntry = (
     loggedInUserTips,
     loggedInUserCommissionRate,
     commissionEarnings,
+    splitPercentage: loggedInUserSplitPercentage,
     isSplit: entry.isSplit,
     splits:
       role === 'EMPLOYEE'
@@ -205,7 +218,10 @@ const formatSalonEntry = (
               commissionRate: s.commissionRate || s.employee.commissionRate?.rate || 0,
               commissionEarnings:
                 s.commissionEarnings ||
-                ((s.commissionRate || s.employee.commissionRate?.rate || 0) * s.totalPrice) / 100
+                ((s.commissionRate || s.employee.commissionRate?.rate || 0) * s.totalPrice) / 100,
+              splitPercentage:
+                s.splitPercentage ??
+                (entry.actualPrice > 0 ? (s.totalPrice / entry.actualPrice) * 100 : 0)
             }))
           : []
   };
@@ -235,11 +251,15 @@ const createSalonEntry = async (payload: ISalonEntryCreatePayload) => {
   }
   const mainEarnings = (mainEmployeePrice * mainRate) / 100;
 
+  // Derive splitPercentage if not provided
+  const mainSplitPercentage =
+    Number((payload.splitPercentage ?? (actualPrice > 0 ? (mainEmployeePrice / actualPrice) * 100 : 100)).toFixed(2));
+
   console.log('DEBUG: mainEarnings:', mainEarnings);
 
   const result = await prisma.$transaction(async (tx: Prisma.TransactionClient) => {
     // We need to fetch rates for split employees too
-    const splitData: SplitEntryCreatePayload[] = [];
+    const splitData: any[] = [];
     if (entryData.isSplit && splits && splits.length > 0) {
       for (const split of splits) {
         const emp = await tx.user.findUnique({
@@ -247,12 +267,17 @@ const createSalonEntry = async (payload: ISalonEntryCreatePayload) => {
           include: { commissionRate: true }
         });
         const rate = emp?.commissionRate?.rate || 0;
+
+        const derivedPercentage =
+          Number((split.splitPercentage ?? (actualPrice > 0 ? (split.totalPrice / actualPrice) * 100 : 0)).toFixed(2));
+
         splitData.push({
           employeeId: split.employeeId,
           totalPrice: split.totalPrice,
           tips: split.tips || 0,
           commissionRate: rate,
-          commissionEarnings: (split.totalPrice * rate) / 100
+          commissionEarnings: (split.totalPrice * rate) / 100,
+          splitPercentage: derivedPercentage
         });
       }
     }
@@ -265,6 +290,7 @@ const createSalonEntry = async (payload: ISalonEntryCreatePayload) => {
         actualPrice,
         commissionRate: mainRate,
         commissionEarnings: mainEarnings,
+        splitPercentage: mainSplitPercentage,
         splits: splitData.length > 0 ? { create: splitData } : undefined
       },
       include: {
@@ -543,7 +569,7 @@ const updateSalonEntry = async (
   const mainRate = mainEmployee?.commissionRate?.rate || 0;
 
   const result = await prisma.$transaction(async (tx: Prisma.TransactionClient) => {
-    let splitData: SplitEntryCreatePayload[] | undefined = undefined;
+    let splitData: any[] | undefined = undefined;
     if (splits !== undefined) {
       await tx.splitEntry.deleteMany({
         where: { salonEntryId: id }
@@ -562,7 +588,9 @@ const updateSalonEntry = async (
             totalPrice: split.totalPrice,
             tips: split.tips || 0,
             commissionRate: rate,
-            commissionEarnings: (split.totalPrice * rate) / 100
+            commissionEarnings: (split.totalPrice * rate) / 100,
+            splitPercentage:
+              split.splitPercentage ?? (actualPrice && actualPrice > 0 ? (split.totalPrice / actualPrice) * 100 : 0)
           });
         }
       }
@@ -585,6 +613,9 @@ const updateSalonEntry = async (
         actualPrice,
         commissionRate: mainRate,
         commissionEarnings: mainEarnings,
+        splitPercentage:
+          payload.splitPercentage ??
+          (actualPrice && actualPrice > 0 ? (mainEmployeePrice / actualPrice) * 100 : 100),
         splits: splitData ? { create: splitData } : undefined
       },
       include: salonEntryInclude

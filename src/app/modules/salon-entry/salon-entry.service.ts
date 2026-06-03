@@ -106,6 +106,7 @@ const formatSalonEntry = (
   role: string,
   targetEmployeeId?: string
 ) => {
+  console.log("DEBUG: Formatting entry:", entry.id, "Splits:", JSON.stringify(entry.splits, null, 2));
   let loggedInUserTips = 0;
   let loggedInUserTotalPrice = 0;
   let loggedInUserActualPrice = 0;

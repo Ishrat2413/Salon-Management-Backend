@@ -23,7 +23,11 @@ const validateRequest = (
       }
 
       next();
-    } catch (error) {
+    } catch (error: any) {
+      if (error.name === 'ZodError') {
+        console.error('DEBUG: Zod Validation Error:', JSON.stringify(error.issues, null, 2));
+        console.error('DEBUG: Request Body:', JSON.stringify(req.body, null, 2));
+      }
       next(error);
     }
   };

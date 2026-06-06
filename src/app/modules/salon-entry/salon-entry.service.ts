@@ -621,6 +621,7 @@ const updateSalonEntry = async (
         splitPercentage:
           payload.splitPercentage ??
           (actualPrice && actualPrice > 0 ? (mainEmployeePrice / actualPrice) * 100 : 100),
+        createdAt: payload.createdAt ? new Date(payload.createdAt) : undefined,
         splits: splitData ? { create: splitData } : undefined
       },
       include: salonEntryInclude

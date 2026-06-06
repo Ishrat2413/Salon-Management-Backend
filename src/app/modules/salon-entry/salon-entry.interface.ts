@@ -34,6 +34,7 @@ export interface ISalonEntryUpdatePayload {
   status?: 'PENDING' | 'APPROVED' | 'REJECTED';
   statusComment?: string;
   isSplit?: boolean;
+  createdAt?: string;
   splits?: ISplitEntryPayload[];
 }
 

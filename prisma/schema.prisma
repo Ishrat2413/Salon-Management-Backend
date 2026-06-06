@@ -64,9 +64,6 @@ model User {
   commissionRate       CommissionRate?
   passwordResetCode    String?
   passwordResetExpires DateTime?
-  assignedTasks        Task[]          @relation("AssignedTo")
-  createdTasks         Task[]          @relation("CreatedBy")
-  completedTasks       Task[]          @relation("CompletedBy")
   createdAt            DateTime        @default(now())
   updatedAt            DateTime        @updatedAt
 

@@ -9,6 +9,7 @@ import { ServiceRoutes } from '../modules/service/service.routes';
 import { SizeRoutes } from '../modules/size/size.routes';
 import { LengthRoutes } from '../modules/length/length.routes';
 import { UserRoutes } from '../modules/user/user.routes';
+import { TaskRoutes } from '../modules/task/task.routes';
 
 const router = Router();
 
@@ -48,6 +49,10 @@ const moduleRoutes = [
   {
     path: '/payroll',
     route: PayrollRoutes
+  },
+  {
+    path: '/tasks',
+    route: TaskRoutes
   }
 ];
 

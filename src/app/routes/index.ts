@@ -6,6 +6,8 @@ import { PayrollRoutes } from '../modules/payroll/payroll.routes';
 import { SalonRoutes } from '../modules/salon/salon.routes';
 import { SalonEntryRoutes } from '../modules/salon-entry/salon-entry.routes';
 import { ServiceRoutes } from '../modules/service/service.routes';
+import { SizeRoutes } from '../modules/size/size.routes';
+import { LengthRoutes } from '../modules/length/length.routes';
 import { UserRoutes } from '../modules/user/user.routes';
 
 const router = Router();
@@ -30,6 +32,14 @@ const moduleRoutes = [
   {
     path: '/services',
     route: ServiceRoutes
+  },
+  {
+    path: '/sizes',
+    route: SizeRoutes
+  },
+  {
+    path: '/lengths',
+    route: LengthRoutes
   },
   {
     path: '/salon-entries',

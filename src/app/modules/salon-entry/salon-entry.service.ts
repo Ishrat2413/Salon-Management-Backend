@@ -10,6 +10,8 @@ import type {
 
 const salonEntryInclude = {
   service: { select: { id: true, name: true } },
+  size: { select: { id: true, name: true } },
+  length: { select: { id: true, name: true } },
   salon: { select: { id: true, name: true } },
   employee: {
     select: {
@@ -62,6 +64,10 @@ type SalonEntryWithRelations = {
   clientName: string | null;
   serviceId: string;
   service: { id: string; name: string };
+  sizeId: string | null;
+  size: { id: string; name: string } | null;
+  lengthId: string | null;
+  length: { id: string; name: string } | null;
   salonId: string;
   salon: { id: string; name: string };
   employeeId: string;

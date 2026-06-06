@@ -193,6 +193,11 @@ const changeStatus = async (id: string, payload: IChangeStatusPayload) => {
     throw new AppError(404, 'User not found.');
   }
 
+  // Extra safeguard: Enforce commissionRate for activation
+  if (payload.status === 'ACTIVE' && payload.commissionRate === undefined) {
+    throw new AppError(400, 'Commission rate is required when approving or activating a user.');
+  }
+
   if (user.status === 'PENDING' && payload.status === 'REJECTED') {
     const deletedUser = await prisma.user.delete({
       where: { id },

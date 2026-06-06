@@ -7,6 +7,7 @@ import { SalonRoutes } from '../modules/salon/salon.routes';
 import { SalonEntryRoutes } from '../modules/salon-entry/salon-entry.routes';
 import { ServiceRoutes } from '../modules/service/service.routes';
 import { UserRoutes } from '../modules/user/user.routes';
+import { TaskRoutes } from '../modules/task/task.routes';
 
 const router = Router();
 
@@ -38,6 +39,10 @@ const moduleRoutes = [
   {
     path: '/payroll',
     route: PayrollRoutes
+  },
+  {
+    path: '/tasks',
+    route: TaskRoutes
   }
 ];
 

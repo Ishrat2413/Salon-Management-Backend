@@ -17,5 +17,6 @@ export interface IUserFilterParams {
   searchTerm?: string;
   salonId?: string;
   role?: UserRole;
+  status?: string;
 }
 

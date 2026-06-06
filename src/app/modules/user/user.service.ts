@@ -98,6 +98,15 @@ const getAllUsers = async (filters: IUserFilterParams, page: number, limit: numb
     andConditions.push({ salonId: filters.salonId });
   }
 
+  if (filters.status) {
+    if (typeof filters.status === 'string' && filters.status.includes(',')) {
+      const statusArray = filters.status.split(',').map((s) => s.trim());
+      andConditions.push({ status: { in: statusArray as any[] } });
+    } else {
+      andConditions.push({ status: filters.status as any });
+    }
+  }
+
   const whereConditions: Prisma.UserWhereInput = { AND: andConditions };
 
   const users = await prisma.user.findMany({
@@ -182,6 +191,11 @@ const changeStatus = async (id: string, payload: IChangeStatusPayload) => {
 
   if (!user) {
     throw new AppError(404, 'User not found.');
+  }
+
+  // Extra safeguard: Enforce commissionRate for activation
+  if (payload.status === 'ACTIVE' && payload.commissionRate === undefined) {
+    throw new AppError(400, 'Commission rate is required when approving or activating a user.');
   }
 
   if (user.status === 'PENDING' && payload.status === 'REJECTED') {

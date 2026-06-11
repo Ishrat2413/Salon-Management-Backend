@@ -29,7 +29,21 @@ const getSalonRevenue = catchAsync(async (req: Request, res: Response) => {
   });
 });
 
+const getTopServices = catchAsync(async (req: Request, res: Response) => {
+  const result = await ReportService.getTopServices({
+    startDate: req.query.startDate as string,
+    endDate: req.query.endDate as string
+  });
+  sendResponse(res, {
+    statusCode: 200,
+    success: true,
+    message: 'Top services fetched successfully',
+    data: result
+  });
+});
+
 export const ReportController = {
   getWeeklyEmployeeEarnings,
-  getSalonRevenue
+  getSalonRevenue,
+  getTopServices
 };

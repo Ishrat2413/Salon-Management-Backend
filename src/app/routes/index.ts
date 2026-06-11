@@ -56,13 +56,13 @@ const moduleRoutes = [
     route: TaskRoutes
   },
   {
-    path: '/report',
+    path: '/reports',
     route: ReportRoutes
   }
 ];
 
 moduleRoutes.forEach((route) => {
-  console.log(`Registering route: ${route.path}`);
+  console.log(`[ROUTE DEBUG] Registering path: ${route.path}`);
   router.use(route.path, route.route);
 });
 

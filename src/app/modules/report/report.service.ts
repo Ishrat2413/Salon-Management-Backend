@@ -161,7 +161,59 @@ const getSalonRevenue = async (filters: {
   return data;
 };
 
+const getTopServices = async (filters: {
+  startDate?: string;
+  endDate?: string;
+}) => {
+  const now = toZonedTime(new Date(), TIMEZONE);
+  const isFilterEmpty = !filters.startDate || !filters.endDate;
+
+  const currentStart = !isFilterEmpty
+    ? toZonedTime(`${filters.startDate}T00:00:00.000`, TIMEZONE)
+    : startOfWeek(now, { weekStartsOn: 1 });
+  currentStart.setHours(0, 0, 0, 0);
+
+  const currentEnd = !isFilterEmpty
+    ? toZonedTime(`${filters.endDate}T23:59:59.999`, TIMEZONE)
+    : endOfWeek(now, { weekStartsOn: 1 });
+  currentEnd.setHours(23, 59, 59, 999);
+
+  // Group by serviceId
+  const serviceStats = await prisma.salonEntry.groupBy({
+    by: ['serviceId'],
+    where: {
+      status: 'APPROVED',
+      createdAt: {
+        gte: currentStart,
+        lte: currentEnd
+      }
+    },
+    _count: {
+      serviceId: true
+    },
+    _sum: {
+      actualPrice: true
+    }
+  });
+
+  // Fetch service names
+  const serviceIds = serviceStats.map(s => s.serviceId);
+  const services = await prisma.service.findMany({
+    where: { id: { in: serviceIds } },
+    select: { id: true, name: true }
+  });
+
+  const data = serviceStats.map(stat => ({
+    name: services.find(s => s.id === stat.serviceId)?.name || 'Unknown',
+    count: stat._count.serviceId,
+    revenue: Number((stat._sum.actualPrice || 0).toFixed(2))
+  }));
+
+  return data.sort((a, b) => b.revenue - a.revenue);
+};
+
 export const ReportService = {
   getWeeklyEmployeeEarnings,
-  getSalonRevenue
+  getSalonRevenue,
+  getTopServices
 };

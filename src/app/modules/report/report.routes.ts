@@ -17,4 +17,10 @@ router.get(
   ReportController.getSalonRevenue
 );
 
+router.get(
+  '/top-services',
+  auth('ADMIN', 'MANAGER'),
+  ReportController.getTopServices
+);
+
 export const ReportRoutes = router;

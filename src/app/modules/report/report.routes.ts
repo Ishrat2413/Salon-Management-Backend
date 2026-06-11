@@ -11,4 +11,10 @@ router.get(
   ReportController.getWeeklyEmployeeEarnings
 );
 
+router.get(
+  '/salon-revenue',
+  auth('ADMIN', 'MANAGER'),
+  ReportController.getSalonRevenue
+);
+
 export const ReportRoutes = router;

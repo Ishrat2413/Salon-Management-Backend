@@ -15,6 +15,21 @@ const getWeeklyEmployeeEarnings = catchAsync(async (req: Request, res: Response)
   });
 });
 
+const getSalonRevenue = catchAsync(async (req: Request, res: Response) => {
+  console.log('DEBUG: Received request for salon revenue:', req.query);
+  const result = await ReportService.getSalonRevenue({
+    startDate: req.query.startDate as string,
+    endDate: req.query.endDate as string
+  });
+  sendResponse(res, {
+    statusCode: 200,
+    success: true,
+    message: 'Salon revenue fetched successfully',
+    data: result
+  });
+});
+
 export const ReportController = {
-  getWeeklyEmployeeEarnings
+  getWeeklyEmployeeEarnings,
+  getSalonRevenue
 };

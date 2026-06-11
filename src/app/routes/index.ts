@@ -10,6 +10,7 @@ import { SizeRoutes } from '../modules/size/size.routes';
 import { LengthRoutes } from '../modules/length/length.routes';
 import { UserRoutes } from '../modules/user/user.routes';
 import { TaskRoutes } from '../modules/task/task.routes';
+import { ReportRoutes } from '../modules/report/report.routes';
 
 const router = Router();
 
@@ -53,10 +54,15 @@ const moduleRoutes = [
   {
     path: '/tasks',
     route: TaskRoutes
+  },
+  {
+    path: '/reports',
+    route: ReportRoutes
   }
 ];
 
 moduleRoutes.forEach((route) => {
+  console.log(`Registering route: ${route.path}`);
   router.use(route.path, route.route);
 });
 

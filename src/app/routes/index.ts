@@ -56,7 +56,7 @@ const moduleRoutes = [
     route: TaskRoutes
   },
   {
-    path: '/reports',
+    path: '/report',
     route: ReportRoutes
   }
 ];

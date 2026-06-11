@@ -106,6 +106,62 @@ const getWeeklyEmployeeEarnings = async (filters: {
   };
 };
 
+const getSalonRevenue = async (filters: {
+  startDate?: string;
+  endDate?: string;
+}) => {
+  const now = toZonedTime(new Date(), TIMEZONE);
+  const isFilterEmpty = !filters.startDate || !filters.endDate;
+
+  const currentStart = !isFilterEmpty
+    ? toZonedTime(`${filters.startDate}T00:00:00.000`, TIMEZONE)
+    : startOfWeek(now, { weekStartsOn: 1 });
+  currentStart.setHours(0, 0, 0, 0);
+
+  const currentEnd = !isFilterEmpty
+    ? toZonedTime(`${filters.endDate}T23:59:59.999`, TIMEZONE)
+    : endOfWeek(now, { weekStartsOn: 1 });
+  currentEnd.setHours(23, 59, 59, 999);
+
+  const entries = await prisma.salonEntry.findMany({
+    where: {
+      status: 'APPROVED',
+      createdAt: {
+        gte: currentStart,
+        lte: currentEnd
+      }
+    },
+    select: {
+      createdAt: true,
+      actualPrice: true
+    }
+  });
+
+  const days = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
+  
+  const data = days.map((day, index) => {
+    const dayStart = addDays(currentStart, index);
+    const dayEnd = new Date(dayStart);
+    dayEnd.setHours(23, 59, 59, 999);
+
+    const dayRevenue = entries
+      .filter(e => {
+        const entryDate = toZonedTime(e.createdAt, TIMEZONE);
+        return entryDate >= dayStart && entryDate <= dayEnd;
+      })
+      .reduce((sum, e) => sum + e.actualPrice, 0);
+
+    return {
+      day,
+      revenue: Number(dayRevenue.toFixed(2)),
+      expenses: 0
+    };
+  });
+
+  return data;
+};
+
 export const ReportService = {
-  getWeeklyEmployeeEarnings
+  getWeeklyEmployeeEarnings,
+  getSalonRevenue
 };

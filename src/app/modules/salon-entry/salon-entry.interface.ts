@@ -9,6 +9,8 @@ export interface ISalonEntryCreatePayload {
   employeeId: string;
   salonId: string;
   serviceId: string;
+  sizeId?: string;
+  lengthId?: string;
   clientName?: string;
   totalPrice: number;
   actualPrice?: number;
@@ -24,6 +26,8 @@ export interface ISalonEntryUpdatePayload {
   employeeId?: string;
   salonId?: string;
   serviceId?: string;
+  sizeId?: string;
+  lengthId?: string;
   clientName?: string;
   totalPrice?: number;
   actualPrice?: number;
@@ -34,6 +38,7 @@ export interface ISalonEntryUpdatePayload {
   status?: 'PENDING' | 'APPROVED' | 'REJECTED';
   statusComment?: string;
   isSplit?: boolean;
+  createdAt?: string;
   splits?: ISplitEntryPayload[];
 }
 

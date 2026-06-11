@@ -5,7 +5,9 @@ const createSalonEntry = z.object({
     employeeId: z.string().uuid({ message: 'Valid employee ID is required.' }),
     salonId: z.string().uuid({ message: 'Valid salon ID is required.' }),
     serviceId: z.string().uuid({ message: 'Valid service ID is required.' }),
-    clientName: z.string().min(1, { message: 'Client name is required.' }),
+    sizeId: z.string().uuid({ message: 'Valid size ID is required.' }).optional().nullable(),
+    lengthId: z.string().uuid({ message: 'Valid length ID is required.' }).optional().nullable(),
+    clientName: z.string().min(1, { message: 'Client name is required.' }).optional().nullable(),
     totalPrice: z.number().nonnegative({ message: 'Total price must be a non-negative number.' }),
     actualPrice: z.number().nonnegative().optional(),
     tips: z.number().nonnegative().optional(),
@@ -21,7 +23,7 @@ const createSalonEntry = z.object({
         splitPercentage: z.number().nonnegative().optional()
       })
     ).optional()
-  }).strict()
+  })
 });
 
 const updateSalonEntry = z.object({
@@ -29,7 +31,9 @@ const updateSalonEntry = z.object({
     employeeId: z.string().uuid({ message: 'Valid employee ID is required.' }).optional(),
     salonId: z.string().uuid({ message: 'Valid salon ID is required.' }).optional(),
     serviceId: z.string().uuid({ message: 'Valid service ID is required.' }).optional(),
-    clientName: z.string().optional(),
+    sizeId: z.string().uuid({ message: 'Valid size ID is required.' }).optional().nullable(),
+    lengthId: z.string().uuid({ message: 'Valid length ID is required.' }).optional().nullable(),
+    clientName: z.string().optional().nullable(),
     totalPrice: z.number().nonnegative({ message: 'Total price must be a non-negative number.' }).optional(),
     actualPrice: z.number().nonnegative().optional(),
     tips: z.number().nonnegative().optional(),
@@ -39,6 +43,7 @@ const updateSalonEntry = z.object({
     status: z.enum(['PENDING', 'APPROVED', 'REJECTED']).optional(),
     statusComment: z.string().optional(),
     isSplit: z.boolean().optional(),
+    createdAt: z.string().datetime().optional(),
     splits: z.array(
       z.object({
         employeeId: z.string().uuid({ message: 'Valid split employee ID is required.' }),
@@ -47,7 +52,7 @@ const updateSalonEntry = z.object({
         splitPercentage: z.number().nonnegative().optional()
       })
     ).optional()
-  }).strict()
+  })
 });
 
 const changeStatus = z.object({

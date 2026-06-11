@@ -6,7 +6,11 @@ import { PayrollRoutes } from '../modules/payroll/payroll.routes';
 import { SalonRoutes } from '../modules/salon/salon.routes';
 import { SalonEntryRoutes } from '../modules/salon-entry/salon-entry.routes';
 import { ServiceRoutes } from '../modules/service/service.routes';
+import { SizeRoutes } from '../modules/size/size.routes';
+import { LengthRoutes } from '../modules/length/length.routes';
 import { UserRoutes } from '../modules/user/user.routes';
+import { TaskRoutes } from '../modules/task/task.routes';
+import { ReportRoutes } from '../modules/report/report.routes';
 
 const router = Router();
 
@@ -32,16 +36,33 @@ const moduleRoutes = [
     route: ServiceRoutes
   },
   {
+    path: '/sizes',
+    route: SizeRoutes
+  },
+  {
+    path: '/lengths',
+    route: LengthRoutes
+  },
+  {
     path: '/salon-entries',
     route: SalonEntryRoutes
   },
   {
     path: '/payroll',
     route: PayrollRoutes
+  },
+  {
+    path: '/tasks',
+    route: TaskRoutes
+  },
+  {
+    path: '/reports',
+    route: ReportRoutes
   }
 ];
 
 moduleRoutes.forEach((route) => {
+  console.log(`Registering route: ${route.path}`);
   router.use(route.path, route.route);
 });
 

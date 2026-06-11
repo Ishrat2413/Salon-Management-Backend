@@ -19,6 +19,10 @@ const changeStatus = z.object({
       commissionRate: z.number().min(0).max(100).optional()
     })
     .strict()
+    .refine((data) => data.status !== 'ACTIVE' || data.commissionRate !== undefined, {
+      message: 'Commission rate is required when approving or activating a user.',
+      path: ['commissionRate']
+    })
 });
 
 const updateCommissionRate = z.object({

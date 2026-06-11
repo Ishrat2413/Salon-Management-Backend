@@ -26,6 +26,22 @@ model Service {
   @@map("services")
 }
 
+model Size {
+  id           String       @id @default(uuid())
+  name         String
+  salonEntries SalonEntry[]
+
+  @@map("sizes")
+}
+
+model Length {
+  id           String       @id @default(uuid())
+  name         String
+  salonEntries SalonEntry[]
+
+  @@map("lengths")
+}
+
 model User {
   id                   String          @id @default(uuid())
   fullName             String
@@ -42,6 +58,9 @@ model User {
   splitEntries         SplitEntry[]    @relation("SplitEmployee")
   approvedEntries      SalonEntry[]    @relation("ApprovedBy")
   editedEntries        SalonEntry[]    @relation("EditedBy")
+  assignedTasks        Task[]          @relation("AssignedTasks")
+  createdTasks         Task[]          @relation("CreatedTasks")
+  completedTasks       Task[]          @relation("CompletedTasks")
   commissionRate       CommissionRate?
   passwordResetCode    String?
   passwordResetExpires DateTime?
@@ -63,47 +82,51 @@ model CommissionRate {
 }
 
 model SalonEntry {
-  id            String           @id @default(uuid())
-  salonId       String
-  salon         Salon            @relation(fields: [salonId], references: [id])
-  serviceId     String
-  service       Service          @relation(fields: [serviceId], references: [id])
-  employeeId    String
-  employee      User             @relation("MainEmployee", fields: [employeeId], references: [id])
-  clientName    String?
-  totalPrice    Float
-  actualPrice   Float            @default(0)
-  tips          Float?           @default(0)
-  addHair       Float?           @default(0)
-  commissionRate Float?          @default(0)
-  commissionEarnings Float?      @default(0)
-  splitPercentage Float?         @default(0)
-  notes         String?
-  isSplit       Boolean          @default(false)
-  splits        SplitEntry[]
-  status        SalonEntryStatus @default(PENDING)
-  statusComment String?
-  approvedById  String?
-  approvedBy    User?            @relation("ApprovedBy", fields: [approvedById], references: [id])
-  editedById    String?
-  editedBy      User?            @relation("EditedBy", fields: [editedById], references: [id])
-  createdAt     DateTime         @default(now())
-  updatedAt     DateTime         @updatedAt
+  id                 String           @id @default(uuid())
+  salonId            String
+  salon              Salon            @relation(fields: [salonId], references: [id])
+  serviceId          String
+  service            Service          @relation(fields: [serviceId], references: [id])
+  sizeId             String?
+  size               Size?            @relation(fields: [sizeId], references: [id])
+  lengthId           String?
+  length             Length?          @relation(fields: [lengthId], references: [id])
+  employeeId         String
+  employee           User             @relation("MainEmployee", fields: [employeeId], references: [id])
+  clientName         String?
+  totalPrice         Float
+  actualPrice        Float            @default(0)
+  tips               Float?           @default(0)
+  addHair            Float?           @default(0)
+  commissionRate     Float?           @default(0)
+  commissionEarnings Float?           @default(0)
+  splitPercentage    Float?           @default(0)
+  notes              String?
+  isSplit            Boolean          @default(false)
+  splits             SplitEntry[]
+  status             SalonEntryStatus @default(PENDING)
+  statusComment      String?
+  approvedById       String?
+  approvedBy         User?            @relation("ApprovedBy", fields: [approvedById], references: [id])
+  editedById         String?
+  editedBy           User?            @relation("EditedBy", fields: [editedById], references: [id])
+  createdAt          DateTime         @default(now())
+  updatedAt          DateTime         @updatedAt
 
   @@map("salon_entries")
 }
 
 model SplitEntry {
-  id           String     @id @default(uuid())
-  salonEntryId String
-  salonEntry   SalonEntry @relation(fields: [salonEntryId], references: [id], onDelete: Cascade)
-  employeeId   String
-  employee     User       @relation("SplitEmployee", fields: [employeeId], references: [id])
-  totalPrice   Float
-  tips         Float?     @default(0)
-  commissionRate Float?    @default(0)
-  commissionEarnings Float?    @default(0)
-  splitPercentage Float?       @default(0)
+  id                 String     @id @default(uuid())
+  salonEntryId       String
+  salonEntry         SalonEntry @relation(fields: [salonEntryId], references: [id], onDelete: Cascade)
+  employeeId         String
+  employee           User       @relation("SplitEmployee", fields: [employeeId], references: [id])
+  totalPrice         Float
+  tips               Float?     @default(0)
+  commissionRate     Float?     @default(0)
+  commissionEarnings Float?     @default(0)
+  splitPercentage    Float?     @default(0)
 
   @@map("split_entries")
 }
@@ -125,4 +148,29 @@ enum SalonEntryStatus {
   PENDING
   APPROVED
   REJECTED
+}
+
+enum TaskStatus {
+  PENDING
+  COMPLETION_REQUESTED
+  COMPLETED
+}
+
+model Task {
+  id                    String      @id @default(uuid())
+  title                 String
+  description           String      @db.Text
+  status                TaskStatus  @default(PENDING)
+  assignedToId          String
+  assignedTo            User        @relation("AssignedTasks", fields: [assignedToId], references: [id])
+  createdById           String
+  createdBy             User        @relation("CreatedTasks", fields: [createdById], references: [id])
+  completedById         String?
+  completedBy           User?       @relation("CompletedTasks", fields: [completedById], references: [id])
+  completionRequestedAt DateTime?
+  completedAt           DateTime?
+  createdAt             DateTime    @default(now())
+  updatedAt             DateTime    @updatedAt
+
+  @@map("tasks")
 }
